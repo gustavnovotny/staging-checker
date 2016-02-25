@@ -23,15 +23,16 @@ import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.model.Portlet;
+import com.liferay.portal.service.PortletLocalServiceUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import jorgediazest.stagingchecker.data.Data;
-import jorgediazest.stagingchecker.data.DataUtil;
 
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelImpl;
@@ -43,12 +44,12 @@ import jorgediazest.util.service.Service;
 public class StagingCheckerModel extends ModelImpl {
 
 	public static String[] auditedModelAttributes =
-		new String[] { "companyId", "createDate", "modifiedDate"};
-	public static String[] groupedModelAttributes = new String[] { "groupId" };
+		new String[] { "companyId", "createDate"};
+	public static String[] groupedModelAttributes = new String[] { };
 	public static String[] resourcedModelAttributes =
 		new String[] { "resourcePrimKey" };
 	public static String[] stagedModelAttributes =
-		new String[] { "uuid", "companyId", "createDate", "modifiedDate" };
+		new String[] { "uuid", "companyId", "createDate"};
 	public static String[] workflowModelAttributes = new String[] { "status" };
 
 	@Override
@@ -66,17 +67,12 @@ public class StagingCheckerModel extends ModelImpl {
 	}
 
 	public int compareTo(Data data1, Data data2) {
-		if ((data1.getPrimaryKey() != -1) && (data2.getPrimaryKey() != -1) &&
-			!this.isResourcedModel()) {
 
-			return DataUtil.compareLongs(
-				data1.getPrimaryKey(), data2.getPrimaryKey());
+		if (Validator.isNotNull(data1.getUuid())) {
+			return data1.getUuid().compareTo(data2.getUuid());
 		}
-		else if ((data1.getResourcePrimKey() != -1) &&
-				 (data2.getResourcePrimKey() != -1)) {
-
-			return DataUtil.compareLongs(
-				data1.getResourcePrimKey(), data2.getResourcePrimKey());
+		else if (Validator.isNotNull(data2.getUuid())) {
+			return -1 * compareTo(data2, data1);
 		}
 		else {
 			return 0;
@@ -136,6 +132,22 @@ public class StagingCheckerModel extends ModelImpl {
 			return data1.getVersion().equals(data2.getVersion());
 		}
 
+		/* TODO if name or title are a XML, we have to parse it and compare */
+		if (this.hasAttribute("name") &&
+			Validator.isNotNull(data1.getName()) &&
+			Validator.isNotNull(data2.getName())) {
+
+			return data1.getName().equals(data2.getName());
+		}
+
+		/* TODO if name or title are a XML, we have to parse it and compare */
+		if (this.hasAttribute("title") &&
+			Validator.isNotNull(data1.getTitle()) &&
+			Validator.isNotNull(data2.getTitle())) {
+
+			return data1.getTitle().equals(data2.getTitle());
+		}
+
 		return true;
 	}
 
@@ -144,8 +156,8 @@ public class StagingCheckerModel extends ModelImpl {
 			return null;
 		}
 
-		return this.generateCriterionFilter(
-			"status=" + WorkflowConstants.STATUS_APPROVED);
+		return this.getProperty("status").in(
+			this.getStagedModelDataHandler().getExportableStatuses());
 	}
 
 	public Criterion getCompanyGroupFilter(long companyId) {
@@ -194,6 +206,22 @@ public class StagingCheckerModel extends ModelImpl {
 
 	public List<String> getLiferayIndexedAttributes() {
 		return liferayIndexedAttributes;
+	}
+
+	public String getPortletId() {
+
+		if (this.getStagedModelDataHandler() == null) {
+			return null;
+		}
+
+		String stagedModelDataHandler =
+			this.getStagedModelDataHandler().getClass().getName();
+
+		if (!stagedHandlerPortletIdMap.contains(stagedModelDataHandler)) {
+			fillStagingHandlerPortletIdMap();
+		}
+
+		return stagedHandlerPortletIdMap.get(stagedModelDataHandler);
 	}
 
 	public Integer hashCode(Data data) {
@@ -249,7 +277,35 @@ public class StagingCheckerModel extends ModelImpl {
 			this.addIndexedAttribute("version");
 		}
 
+		if (this.hasAttribute("name")) {
+			this.addIndexedAttribute("name");
+		}
+
+		if (this.hasAttribute("title")) {
+			this.addIndexedAttribute("title");
+		}
+
 		this.setFilter(this.generateQueryFilter());
+	}
+
+	protected static void fillStagingHandlerPortletIdMap() {
+		for (Portlet portlet : PortletLocalServiceUtil.getPortlets()) {
+			List<String> stagingHandlerList =
+				portlet.getStagedModelDataHandlerClasses();
+
+			for (String stagingHandler : stagingHandlerList) {
+				if (!stagedHandlerPortletIdMap.containsKey(stagingHandler)) {
+					stagedHandlerPortletIdMap.put(
+						stagingHandler, portlet.getPortletId());
+
+					if (_log.isDebugEnabled()) {
+						_log.debug(
+							"Adding: " + stagingHandler + " portlet " +
+							portlet.getPortletId());
+					}
+				}
+			}
+		}
 	}
 
 	protected static Criterion generateConjunctionQueryFilter(
@@ -294,6 +350,10 @@ public class StagingCheckerModel extends ModelImpl {
 	}
 
 	private static Log _log = LogFactoryUtil.getLog(StagingCheckerModel.class);
+
+	private static
+		ConcurrentHashMap<String, String> stagedHandlerPortletIdMap =
+			new ConcurrentHashMap<String, String>();
 
 	private List<String> liferayIndexedAttributes = null;
 

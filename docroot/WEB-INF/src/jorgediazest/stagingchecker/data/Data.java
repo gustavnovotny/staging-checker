@@ -56,7 +56,8 @@ public class Data implements Comparable<Data> {
 	public String getAllData(String sep) {
 		return this.getEntryClassName() + sep + companyId + sep + groupId +
 			sep + primaryKey + sep + resourcePrimKey + sep + uuid + sep +
-			createDate + sep + modifiedDate + sep + status + sep + version;
+			createDate + sep + modifiedDate + sep + status + sep + version +
+			sep + name + sep + title;
 	}
 
 	public Long getCompanyId() {
@@ -83,6 +84,10 @@ public class Data implements Comparable<Data> {
 		return modifiedDate;
 	}
 
+	public String getName() {
+		return name;
+	}
+
 	public long getPrimaryKey() {
 		return primaryKey;
 	}
@@ -93,6 +98,10 @@ public class Data implements Comparable<Data> {
 
 	public Integer getStatus() {
 		return status;
+	}
+
+	public String getTitle() {
+		return title;
 	}
 
 	public String getUuid() {
@@ -128,6 +137,10 @@ public class Data implements Comparable<Data> {
 
 	public void setModifiedDate(Long modifiedDate) {
 		this.modifiedDate = modifiedDate;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public void setPrimaryKey(long primaryKey) {
@@ -191,7 +204,9 @@ public class Data implements Comparable<Data> {
 		else if ("createDate".equals(attribute) ||
 				 "modifiedDate".equals(attribute) ||
 				 "modified".equals(attribute) ||
-				 "uuid".equals(attribute)) {
+				 "uuid".equals(attribute) ||
+				 "name".equals(attribute) ||
+				 "title".equals(attribute)) {
 
 			String strValue = DataUtil.castString(value);
 
@@ -210,6 +225,12 @@ public class Data implements Comparable<Data> {
 			else if ("uuid".equals(attribute)) {
 				setUuid(strValue);
 			}
+			else if ("name".equals(attribute)) {
+				setName(strValue);
+			}
+			else if ("title".equals(attribute)) {
+				setTitle(strValue);
+			}
 		}
 	}
 
@@ -223,6 +244,10 @@ public class Data implements Comparable<Data> {
 
 	public void setStatus(Integer status) {
 		this.status = status;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
 	}
 
 	public void setUuid(String uuid) {
@@ -243,9 +268,11 @@ public class Data implements Comparable<Data> {
 	protected Long groupId = null;
 	protected StagingCheckerModel model = null;
 	protected Long modifiedDate = null;
+	protected String name = null;
 	protected long primaryKey = -1;
 	protected long resourcePrimKey = -1;
 	protected Integer status = null;
+	protected String title = null;
 	protected String uuid = null;
 	protected String version = null;
 
