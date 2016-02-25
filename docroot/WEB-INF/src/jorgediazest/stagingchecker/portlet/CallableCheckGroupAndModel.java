@@ -1,0 +1,93 @@
+/**
+ * Copyright (c) 2015-present Jorge Díaz All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ */
+
+package jorgediazest.stagingchecker.portlet;
+
+import com.liferay.portal.kernel.dao.orm.Criterion;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.model.Group;
+import com.liferay.portal.service.GroupLocalServiceUtil;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
+import jorgediazest.stagingchecker.ExecutionMode;
+import jorgediazest.stagingchecker.data.Data;
+import jorgediazest.stagingchecker.data.Results;
+import jorgediazest.stagingchecker.model.StagingCheckerModel;
+
+/**
+ * @author Jorge Díaz
+ */
+public class CallableCheckGroupAndModel implements Callable<Results> {
+
+	CallableCheckGroupAndModel(
+		long companyId, long groupId, StagingCheckerModel model,
+		Set<ExecutionMode> executionMode) {
+
+		this.companyId = companyId;
+		this.groupId = groupId;
+		this.model = model;
+		this.executionMode = executionMode;
+	}
+
+	@Override
+	public Results call() throws Exception {
+
+		try {
+			if (_log.isInfoEnabled()) {
+				_log.info(
+					"Model: " + model.getName() + " - CompanyId: " +
+						companyId + " - GroupId: " + groupId);
+			}
+
+			if (!model.hasAttribute("groupId")) {
+				return null;
+			}
+
+			Group group = GroupLocalServiceUtil.fetchGroup(groupId);
+
+			long stagingGroupId = group.getStagingGroup().getGroupId();
+
+			Criterion stagingFilter = model.getCompanyGroupFilter(
+				companyId, stagingGroupId);
+
+			Set<Data> stagingData = new HashSet<Data>(
+				model.getLiferayData(stagingFilter).values());
+
+			Criterion liveFilter = model.getCompanyGroupFilter(
+				companyId, groupId);
+
+			Set<Data> liveData = new HashSet<Data>(
+				model.getLiferayData(liveFilter).values());
+
+			return Results.getStagingCheckResult(
+					model, stagingData, liveData, executionMode);
+		}
+		catch (Exception e) {
+			return Results.getError(model, e);
+		}
+	}
+
+	private static Log _log = LogFactoryUtil.getLog(
+		CallableCheckGroupAndModel.class);
+
+	private long companyId = -1;
+	private Set<ExecutionMode> executionMode = null;
+	private long groupId = -1;
+	private StagingCheckerModel model = null;
+
+}

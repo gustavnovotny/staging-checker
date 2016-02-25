@@ -1,0 +1,4 @@
+
+grant codeBase "file:${staging_checker-portlet}${/}-" {
+    permission java.lang.RuntimePermission "getClassLoader";
+};
