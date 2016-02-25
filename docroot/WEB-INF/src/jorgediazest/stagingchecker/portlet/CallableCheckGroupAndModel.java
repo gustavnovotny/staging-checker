@@ -51,7 +51,7 @@ public class CallableCheckGroupAndModel implements Callable<Results> {
 			if (_log.isInfoEnabled()) {
 				_log.info(
 					"Model: " + model.getName() + " - CompanyId: " +
-						companyId + " - GroupId: " + groupId);
+					companyId + " - GroupId: " + groupId);
 			}
 
 			if (!model.hasAttribute("groupId")) {
@@ -59,6 +59,16 @@ public class CallableCheckGroupAndModel implements Callable<Results> {
 			}
 
 			Group group = GroupLocalServiceUtil.fetchGroup(groupId);
+
+			if (!group.isStagedPortlet(model.getPortletId())) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(
+						model.getName() + " is not staged for group " +
+							groupId);
+				}
+
+				return null;
+			}
 
 			long stagingGroupId = group.getStagingGroup().getGroupId();
 

@@ -52,6 +52,7 @@ import javax.portlet.ActionResponse;
 
 import jorgediazest.stagingchecker.ExecutionMode;
 import jorgediazest.stagingchecker.data.Results;
+import jorgediazest.stagingchecker.model.IgnoreCreateDateModel;
 import jorgediazest.stagingchecker.model.StagingCheckerModel;
 
 import jorgediazest.util.model.Model;
@@ -85,16 +86,39 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		Set<ExecutionMode> executionMode, int threadsExecutor)
 	throws ExecutionException, InterruptedException {
 
-		ModelFactory modelFactory = new ModelFactory(StagingCheckerModel.class);
+		Map<String, Class<? extends Model>> modelClassMap =
+			new HashMap<String, Class<? extends Model>>();
+
+		modelClassMap.put(
+			"com.liferay.portlet.asset.model.AssetCategory",
+			IgnoreCreateDateModel.class);
+
+		modelClassMap.put(
+			"com.liferay.portlet.asset.model.AssetVocabulary",
+			IgnoreCreateDateModel.class);
+
+		ModelFactory modelFactory = new ModelFactory(
+			StagingCheckerModel.class, modelClassMap);
 
 		Map<String, Model> modelMap = modelFactory.getModelMap(classNames);
 
 		List<StagingCheckerModel> modelList =
 			new ArrayList<StagingCheckerModel>();
 
-		for (Model model : modelMap.values()) {
-			if (model.isStagedModel()) {
-				modelList.add(castModel(model));
+		for (Model modelAux : modelMap.values()) {
+			StagingCheckerModel model = castModel(modelAux);
+
+			if (_log.isDebugEnabled()) {
+				_log.debug(
+					model + " - isStagedModel: " + model.isStagedModel() +
+						" - isGroupedModel: " + model.isGroupedModel() +
+								" - portletId: " + model.getPortletId());
+			}
+
+			if (model.isStagedModel() && model.isGroupedModel() &&
+				(model.getPortletId() != null)) {
+
+				modelList.add(model);
 			}
 		}
 
