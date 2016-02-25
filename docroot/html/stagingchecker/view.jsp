@@ -76,16 +76,16 @@
 				<aui:option selected="true" value="Table"><liferay-ui:message key="output-format-table" /></aui:option>
 				<aui:option value="CSV"><liferay-ui:message key="output-format-csv" /></aui:option>
 			</aui:select>
-			<aui:input helpMessage="filter-class-name-help" name="filterClassName" onClick='<%= renderResponse.getNamespace() + "disableRestagingAndRemoveOrphansButtons(this);" %>' type="text" value="" />
+			<aui:input helpMessage="filter-class-name-help" name="filterClassName" type="text" value="" />
 		</aui:column>
 		<aui:column>
-			<aui:input helpMessage="output-both-exact-help" name="outputBothExact" onClick='<%= renderResponse.getNamespace() + "disableRestagingAndRemoveOrphansButtons(this);" %>' type="checkbox" value="false" />
-			<aui:input helpMessage="output-both-not-exact-help" name="outputBothNotExact" onClick='<%= renderResponse.getNamespace() + "disableRestagingAndRemoveOrphansButtons(this);" %>' type="checkbox" value="true" />
-			<aui:input helpMessage="output-staging-help" name="outputStaging" onClick='<%= renderResponse.getNamespace() + "disableRestagingAndRemoveOrphansButtons(this);" %>' type="checkbox" value="true" />
-			<aui:input helpMessage="output-live-help" name="outputLive" onClick='<%= renderResponse.getNamespace() + "disableRestagingAndRemoveOrphansButtons(this);" %>' type="checkbox" value="false" />
+			<aui:input helpMessage="output-both-exact-help" name="outputBothExact" type="checkbox" value="false" />
+			<aui:input helpMessage="output-both-not-exact-help" name="outputBothNotExact" type="checkbox" value="true" />
+			<aui:input helpMessage="output-staging-help" name="outputStaging" %>' type="checkbox" value="true" />
+			<aui:input helpMessage="output-live-help" name="outputLive" type="checkbox" value="true" />
 		</aui:column>
 		<aui:column>
-			<aui:input helpMessage="filter-group-id-help" name="filterGroupId" onClick='<%= renderResponse.getNamespace() + "disableRestagingAndRemoveOrphansButtons(this);" %>' type="text" value="" />
+			<aui:input helpMessage="filter-group-id-help" name="filterGroupId" type="text" value="" />
 			<aui:input name="dumpAllObjectsToLog" type="checkbox" value="false" />
 		</aui:column>
 	</aui:fieldset>
@@ -129,18 +129,6 @@
 %>
 
 <aui:script>
-	function <portlet:namespace />disableRestagingAndRemoveOrphansButtons(event) {
-		var restagingButton = document.getElementById("restagingButtonSpan");
-		var removeOrphansButton = document.getElementById("removeOrphansSpan");
-
-		if (restagingButton != null) {
-			restagingButton.className = 'hide';
-		}
-
-		if (removeOrphansButton != null) {
-			removeOrphansButton.className = 'hide';
-		}
-	}
 
 	function <portlet:namespace />toogleFilterGroupId(event) {
 		var filterGroupId = document.getElementById("filterGroupIdSpan");
