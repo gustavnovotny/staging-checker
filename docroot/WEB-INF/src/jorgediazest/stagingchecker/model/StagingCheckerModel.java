@@ -79,14 +79,14 @@ public class StagingCheckerModel extends ModelImpl {
 		}
 	}
 
-	public Data createDataObject(Object[] result) {
+	public Data createDataObject(String[] attributes, Object[] result) {
 		Data data = new Data(this);
 		data.setPrimaryKey((Long)result[0]);
 
 		int i = 0;
 
-		for (String attrib : this.getLiferayIndexedAttributes()) {
-			data.setProperty(attrib, result[i++]);
+		for (String attrib : attributes) {
+			data.set(attrib, result[i++]);
 		}
 
 		return data;
@@ -111,41 +111,19 @@ public class StagingCheckerModel extends ModelImpl {
 			return false;
 		}
 
-		if (!Validator.equals(data1.getCreateDate(), data2.getCreateDate())) {
-			return false;
-		}
+		for (String attr : checkExactAttributes) {
+			/* TODO if name or title are a XML,
+			 * we have to parse it and compare */
 
-		if (!Validator.equals(
-				data1.getModifiedDate(), data2.getModifiedDate())) {
+			Object value1 = data1.get(attr);
+			Object value2 = data2.get(attr);
 
-			return false;
-		}
+			if (Validator.isNotNull(value1) &&
+				Validator.isNotNull(value2) &&
+				!Validator.equals(value1, value2)) {
 
-		if (!Validator.equals(data1.getStatus(), data2.getStatus())) {
-			return false;
-		}
-
-		if (this.hasAttribute("version") &&
-			Validator.isNotNull(data1.getVersion()) &&
-			Validator.isNotNull(data2.getVersion())) {
-
-			return data1.getVersion().equals(data2.getVersion());
-		}
-
-		/* TODO if name or title are a XML, we have to parse it and compare */
-		if (this.hasAttribute("name") &&
-			Validator.isNotNull(data1.getName()) &&
-			Validator.isNotNull(data2.getName())) {
-
-			return data1.getName().equals(data2.getName());
-		}
-
-		/* TODO if name or title are a XML, we have to parse it and compare */
-		if (this.hasAttribute("title") &&
-			Validator.isNotNull(data1.getTitle()) &&
-			Validator.isNotNull(data2.getTitle())) {
-
-			return data1.getTitle().equals(data2.getTitle());
+				return false;
+			}
 		}
 
 		return true;
@@ -178,26 +156,43 @@ public class StagingCheckerModel extends ModelImpl {
 		return conjunction;
 	}
 
-	public Map<Long, Data> getLiferayData(Criterion filter) throws Exception {
+	public Map<Long, Data> getData() throws Exception {
+		return getData(null, null);
+	}
+
+	public Map<Long, Data> getData(Criterion filter) throws Exception {
+		return getData(null, filter);
+	}
+
+	public Map<Long, Data> getData(String[] attributes) throws Exception {
+		return getData(attributes, null);
+	}
+
+	public Map<Long, Data> getData(String[] attributes, Criterion filter)
+		throws Exception {
 
 		Map<Long, Data> dataMap = new HashMap<Long, Data>();
 
 		DynamicQuery query = service.newDynamicQuery();
 
-		ProjectionList projectionList =
-			this.getPropertyProjection(
-				liferayIndexedAttributes.toArray(new String[0]));
+		if (attributes == null) {
+			attributes = this.getAttributesName();
+		}
+
+		ProjectionList projectionList = this.getPropertyProjection(attributes);
 
 		query.setProjection(ProjectionFactoryUtil.distinct(projectionList));
 
-		query.add(filter);
+		if (filter != null) {
+			query.add(filter);
+		}
 
 		@SuppressWarnings("unchecked")
 		List<Object[]> results = (List<Object[]>)service.executeDynamicQuery(
 			query);
 
 		for (Object[] result : results) {
-			Data data = createDataObject(result);
+			Data data = createDataObject(attributes, result);
 			dataMap.put(data.getPrimaryKey(), data);
 		}
 
@@ -351,6 +346,10 @@ public class StagingCheckerModel extends ModelImpl {
 
 	private static Log _log = LogFactoryUtil.getLog(StagingCheckerModel.class);
 
+	private static String[] checkExactAttributes =
+		new String[] {
+			"createDate", "modifiedDate", "status", "version", "name",
+			"title" };
 	private static
 		ConcurrentHashMap<String, String> stagedHandlerPortletIdMap =
 			new ConcurrentHashMap<String, String>();

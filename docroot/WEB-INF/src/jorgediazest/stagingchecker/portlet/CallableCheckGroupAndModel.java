@@ -75,14 +75,17 @@ public class CallableCheckGroupAndModel implements Callable<Results> {
 			Criterion stagingFilter = model.getCompanyGroupFilter(
 				companyId, stagingGroupId);
 
+			String[] attributesToCheck =
+				model.getLiferayIndexedAttributes().toArray(new String[0]);
+
 			Set<Data> stagingData = new HashSet<Data>(
-				model.getLiferayData(stagingFilter).values());
+				model.getData(attributesToCheck, stagingFilter).values());
 
 			Criterion liveFilter = model.getCompanyGroupFilter(
 				companyId, groupId);
 
 			Set<Data> liveData = new HashSet<Data>(
-				model.getLiferayData(liveFilter).values());
+				model.getData(attributesToCheck, liveFilter).values());
 
 			return Results.getStagingCheckResult(
 					model, stagingData, liveData, executionMode);
