@@ -25,9 +25,10 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import jorgediazest.stagingchecker.ExecutionMode;
-import jorgediazest.stagingchecker.data.Data;
 import jorgediazest.stagingchecker.data.Results;
 import jorgediazest.stagingchecker.model.StagingCheckerModel;
+
+import jorgediazest.util.data.Data;
 
 /**
  * @author Jorge Díaz

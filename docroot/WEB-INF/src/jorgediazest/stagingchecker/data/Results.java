@@ -31,6 +31,8 @@ import java.util.TreeSet;
 import jorgediazest.stagingchecker.ExecutionMode;
 import jorgediazest.stagingchecker.model.StagingCheckerModel;
 
+import jorgediazest.util.data.Data;
+
 /**
  * @author Jorge Díaz
  */

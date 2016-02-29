@@ -41,11 +41,11 @@ import javax.portlet.PortletURL;
 import javax.portlet.RenderRequest;
 
 import jorgediazest.stagingchecker.ExecutionMode;
-import jorgediazest.stagingchecker.data.Data;
-import jorgediazest.stagingchecker.data.DataUtil;
 import jorgediazest.stagingchecker.data.Results;
 import jorgediazest.stagingchecker.model.StagingCheckerModel;
 
+import jorgediazest.util.data.Data;
+import jorgediazest.util.data.DataUtil;
 import jorgediazest.util.output.OutputUtils;
 
 /**

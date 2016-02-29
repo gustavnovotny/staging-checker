@@ -16,9 +16,6 @@ package jorgediazest.stagingchecker.model;
 
 import com.liferay.portal.kernel.dao.orm.Conjunction;
 import com.liferay.portal.kernel.dao.orm.Criterion;
-import com.liferay.portal.kernel.dao.orm.DynamicQuery;
-import com.liferay.portal.kernel.dao.orm.ProjectionFactoryUtil;
-import com.liferay.portal.kernel.dao.orm.ProjectionList;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -27,13 +24,10 @@ import com.liferay.portal.model.Portlet;
 import com.liferay.portal.service.PortletLocalServiceUtil;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import jorgediazest.stagingchecker.data.Data;
-
+import jorgediazest.util.data.Data;
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelImpl;
 import jorgediazest.util.service.Service;
@@ -77,19 +71,6 @@ public class StagingCheckerModel extends ModelImpl {
 		else {
 			return 0;
 		}
-	}
-
-	public Data createDataObject(String[] attributes, Object[] result) {
-		Data data = new Data(this);
-		data.setPrimaryKey((Long)result[0]);
-
-		int i = 0;
-
-		for (String attrib : attributes) {
-			data.set(attrib, result[i++]);
-		}
-
-		return data;
 	}
 
 	public boolean equals(Data data1, Data data2) {
@@ -154,49 +135,6 @@ public class StagingCheckerModel extends ModelImpl {
 		}
 
 		return conjunction;
-	}
-
-	public Map<Long, Data> getData() throws Exception {
-		return getData(null, null);
-	}
-
-	public Map<Long, Data> getData(Criterion filter) throws Exception {
-		return getData(null, filter);
-	}
-
-	public Map<Long, Data> getData(String[] attributes) throws Exception {
-		return getData(attributes, null);
-	}
-
-	public Map<Long, Data> getData(String[] attributes, Criterion filter)
-		throws Exception {
-
-		Map<Long, Data> dataMap = new HashMap<Long, Data>();
-
-		DynamicQuery query = service.newDynamicQuery();
-
-		if (attributes == null) {
-			attributes = this.getAttributesName();
-		}
-
-		ProjectionList projectionList = this.getPropertyProjection(attributes);
-
-		query.setProjection(ProjectionFactoryUtil.distinct(projectionList));
-
-		if (filter != null) {
-			query.add(filter);
-		}
-
-		@SuppressWarnings("unchecked")
-		List<Object[]> results = (List<Object[]>)service.executeDynamicQuery(
-			query);
-
-		for (Object[] result : results) {
-			Data data = createDataObject(attributes, result);
-			dataMap.put(data.getPrimaryKey(), data);
-		}
-
-		return dataMap;
 	}
 
 	public List<String> getLiferayIndexedAttributes() {
