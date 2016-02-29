@@ -81,7 +81,7 @@
 		<aui:column>
 			<aui:input helpMessage="output-both-exact-help" name="outputBothExact" type="checkbox" value="false" />
 			<aui:input helpMessage="output-both-not-exact-help" name="outputBothNotExact" type="checkbox" value="true" />
-			<aui:input helpMessage="output-staging-help" name="outputStaging" %>' type="checkbox" value="true" />
+			<aui:input helpMessage="output-staging-help" name="outputStaging" type="checkbox" value="true" />
 			<aui:input helpMessage="output-live-help" name="outputLive" type="checkbox" value="true" />
 		</aui:column>
 		<aui:column>
