@@ -51,10 +51,11 @@ import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
 
 import jorgediazest.stagingchecker.ExecutionMode;
-import jorgediazest.stagingchecker.data.Results;
 import jorgediazest.stagingchecker.model.IgnoreCreateDateModel;
 import jorgediazest.stagingchecker.model.StagingCheckerModel;
 
+import jorgediazest.util.data.Comparison;
+import jorgediazest.util.data.ComparisonUtil;
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelFactory;
 import jorgediazest.util.model.ModelUtil;
@@ -81,7 +82,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		}
 	}
 
-	public static Map<Long, List<Results>> executeCheck(
+	public static Map<Long, List<Comparison>> executeCheck(
 		Company company, List<Long> groupIds, List<String> classNames,
 		Set<ExecutionMode> executionMode, int threadsExecutor)
 	throws ExecutionException, InterruptedException {
@@ -127,12 +128,12 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		ExecutorService executor = Executors.newFixedThreadPool(
 			threadsExecutor);
 
-		Map<Long, List<Future<Results>>> futureResultDataMap =
-			new LinkedHashMap<Long, List<Future<Results>>>();
+		Map<Long, List<Future<Comparison>>> futureResultDataMap =
+			new LinkedHashMap<Long, List<Future<Comparison>>>();
 
 		for (long groupId : groupIds) {
-			List<Future<Results>> futureResultList =
-				new ArrayList<Future<Results>>();
+			List<Future<Comparison>> futureResultList =
+				new ArrayList<Future<Comparison>>();
 
 			for (StagingCheckerModel model : modelList) {
 				CallableCheckGroupAndModel c =
@@ -145,17 +146,17 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			futureResultDataMap.put(groupId, futureResultList);
 		}
 
-		Map<Long, List<Results>> resultDataMap =
-			new LinkedHashMap<Long, List<Results>>();
+		Map<Long, List<Comparison>> resultDataMap =
+			new LinkedHashMap<Long, List<Comparison>>();
 
 		for (
-			Entry<Long, List<Future<Results>>> entry :
+			Entry<Long, List<Future<Comparison>>> entry :
 				futureResultDataMap.entrySet()) {
 
-			List<Results> resultList = new ArrayList<Results>();
+			List<Comparison> resultList = new ArrayList<Comparison>();
 
-			for (Future<Results> f : entry.getValue()) {
-				Results results = f.get();
+			for (Future<Comparison> f : entry.getValue()) {
+				Comparison results = f.get();
 
 				if (results != null) {
 					resultList.add(results);
@@ -227,8 +228,8 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 		List<Company> companies = CompanyLocalServiceUtil.getCompanies();
 
-		Map<Company, Map<Long, List<Results>>> companyResultDataMap =
-			new HashMap<Company, Map<Long, List<Results>>>();
+		Map<Company, Map<Long, List<Comparison>>> companyResultDataMap =
+			new HashMap<Company, Map<Long, List<Comparison>>>();
 
 		Map<Company, Long> companyProcessTime = new HashMap<Company, Long>();
 
@@ -247,7 +248,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 				int threadsExecutor = GetterUtil.getInteger(
 					PortletProps.get("number.threads"),1);
 
-				Map<Long, List<Results>> resultDataMap =
+				Map<Long, List<Comparison>> resultDataMap =
 					StagingCheckerPortlet.executeCheck(
 						company, groupIds, classNames, executionMode,
 						threadsExecutor);
@@ -260,7 +261,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 					_log.info("COMPANY: " + company);
 
-					Results.dumpToLog(true, resultDataMap);
+					ComparisonUtil.dumpToLog(true, resultDataMap);
 				}
 
 				companyResultDataMap.put(company, resultDataMap);

@@ -30,7 +30,7 @@
 
 				PortletURL serverURL = renderResponse.createRenderURL();
 
-				SearchContainer searchContainer = StagingCheckerOutput.generateSearchContainer(portletConfig, renderRequest, executionMode, resultDataMap, serverURL);
+				SearchContainer searchContainer = StagingCheckerOutput.generateSearchContainer(portletConfig, renderRequest, true, resultDataMap, serverURL);
 
 				if (searchContainer.getTotal() > 0) {
 				%>

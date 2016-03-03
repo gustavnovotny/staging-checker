@@ -25,15 +25,16 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import jorgediazest.stagingchecker.ExecutionMode;
-import jorgediazest.stagingchecker.data.Results;
 import jorgediazest.stagingchecker.model.StagingCheckerModel;
 
+import jorgediazest.util.data.Comparison;
+import jorgediazest.util.data.ComparisonUtil;
 import jorgediazest.util.data.Data;
 
 /**
  * @author Jorge Díaz
  */
-public class CallableCheckGroupAndModel implements Callable<Results> {
+public class CallableCheckGroupAndModel implements Callable<Comparison> {
 
 	CallableCheckGroupAndModel(
 		long companyId, long groupId, StagingCheckerModel model,
@@ -46,7 +47,7 @@ public class CallableCheckGroupAndModel implements Callable<Results> {
 	}
 
 	@Override
-	public Results call() throws Exception {
+	public Comparison call() throws Exception {
 
 		try {
 			if (_log.isInfoEnabled()) {
@@ -88,11 +89,21 @@ public class CallableCheckGroupAndModel implements Callable<Results> {
 			Set<Data> liveData = new HashSet<Data>(
 				model.getData(attributesToCheck, liveFilter).values());
 
-			return Results.getStagingCheckResult(
-					model, stagingData, liveData, executionMode);
+			boolean showBothExact = executionMode.contains(
+				ExecutionMode.SHOW_BOTH_EXACT);
+			boolean showBothNotExact = executionMode.contains(
+				ExecutionMode.SHOW_BOTH_NOTEXACT);
+			boolean showOnlyStaging = executionMode.contains(
+				ExecutionMode.SHOW_STAGING);
+			boolean showOnlyLive = executionMode.contains(
+				ExecutionMode.SHOW_LIVE);
+
+			return ComparisonUtil.getComparation(
+				model, stagingData, liveData, showBothExact, showBothNotExact,
+				showOnlyStaging, showOnlyLive);
 		}
 		catch (Exception e) {
-			return Results.getError(model, e);
+			return ComparisonUtil.getError(model, e);
 		}
 	}
 

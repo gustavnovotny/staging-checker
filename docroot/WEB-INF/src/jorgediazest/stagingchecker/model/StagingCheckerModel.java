@@ -77,39 +77,6 @@ public class StagingCheckerModel extends ModelImpl {
 		return Validator.equals(data1.getUuid(), data2.getUuid());
 	}
 
-	public boolean exact(Data data1, Data data2) {
-		if (!data1.equals(data2)) {
-			return false;
-		}
-
-		if (!Validator.equals(data1.getCompanyId(), data2.getCompanyId())) {
-			return false;
-		}
-
-		if (this.hasAttribute("groupId") &&
-			!Validator.equals(data1.getGroupId(), data2.getGroupId())) {
-
-			return false;
-		}
-
-		for (String attr : checkExactAttributes) {
-			/* TODO if name or title are a XML,
-			 * we have to parse it and compare */
-
-			Object value1 = data1.get(attr);
-			Object value2 = data2.get(attr);
-
-			if (Validator.isNotNull(value1) &&
-				Validator.isNotNull(value2) &&
-				!Validator.equals(value1, value2)) {
-
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 	public Criterion generateQueryFilter() {
 		if (!this.isWorkflowEnabled()) {
 			return null;
@@ -284,10 +251,6 @@ public class StagingCheckerModel extends ModelImpl {
 
 	private static Log _log = LogFactoryUtil.getLog(StagingCheckerModel.class);
 
-	private static String[] checkExactAttributes =
-		new String[] {
-			"createDate", "modifiedDate", "status", "version", "name",
-			"title" };
 	private static
 		ConcurrentHashMap<String, String> stagedHandlerPortletIdMap =
 			new ConcurrentHashMap<String, String>();

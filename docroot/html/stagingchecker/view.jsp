@@ -44,10 +44,10 @@
 <%@ page import="javax.portlet.PortletURL" %>
 
 <%@ page import="jorgediazest.stagingchecker.ExecutionMode" %>
-<%@ page import="jorgediazest.stagingchecker.data.Results" %>
 <%@ page import="jorgediazest.stagingchecker.output.StagingCheckerOutput" %>
 <%@ page import="jorgediazest.stagingchecker.portlet.StagingCheckerPortlet" %>
 
+<%@ page import="jorgediazest.util.data.Comparison" %>
 <%@ page import="jorgediazest.util.output.OutputUtils" %>
 
 <portlet:defineObjects />
@@ -65,7 +65,7 @@
 	Log _log = StagingCheckerPortlet.getLogger();
 	EnumSet<ExecutionMode> executionMode = (EnumSet<ExecutionMode>) request.getAttribute("executionMode");
 	Map<Company, Long> companyProcessTime = (Map<Company, Long>) request.getAttribute("companyProcessTime");
-	Map<Company, Map<Long, List<Results>>> companyResultDataMap = (Map<Company, Map<Long, List<Results>>>) request.getAttribute("companyResultDataMap");
+	Map<Company, Map<Long, List<Comparison>>> companyResultDataMap = (Map<Company, Map<Long, List<Comparison>>>) request.getAttribute("companyResultDataMap");
 	Map<Company, String> companyError = (Map<Company, String>) request.getAttribute("companyError");
 %>
 
