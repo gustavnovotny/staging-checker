@@ -52,6 +52,8 @@ import javax.portlet.ActionResponse;
 
 import jorgediazest.stagingchecker.ExecutionMode;
 import jorgediazest.stagingchecker.model.IgnoreCreateDateModel;
+import jorgediazest.stagingchecker.model.IgnoreNameModel;
+import jorgediazest.stagingchecker.model.JournalArticle;
 import jorgediazest.stagingchecker.model.StagingCheckerModel;
 
 import jorgediazest.util.data.Comparison;
@@ -97,6 +99,14 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		modelClassMap.put(
 			"com.liferay.portlet.asset.model.AssetVocabulary",
 			IgnoreCreateDateModel.class);
+
+		modelClassMap.put(
+			"com.liferay.portlet.journal.model.JournalArticle",
+			JournalArticle.class);
+
+		modelClassMap.put(
+			"com.liferay.portlet.documentlibrary.model.DLFileEntry",
+			IgnoreNameModel.class);
 
 		ModelFactory modelFactory = new ModelFactory(
 			StagingCheckerModel.class, modelClassMap);
