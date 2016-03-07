@@ -129,6 +129,19 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			if (model.isStagedModel() && model.isGroupedModel() &&
 				(model.getPortletId() != null)) {
 
+				if (model.getClassName().startsWith(
+						"com.liferay.portlet.documentlibrary.model.") &&
+					model.hasAttribute("repositoryId")) {
+
+					model.addFilter(
+						model.generateSingleCriterion("groupId=repositoryId"));
+				}
+				else if (model.getClassName().startsWith(
+							"com.liferay.portlet.dynamicdatamapping.model.")) {
+
+					model.setFilter(null);
+				}
+
 				modelList.add(model);
 			}
 		}
