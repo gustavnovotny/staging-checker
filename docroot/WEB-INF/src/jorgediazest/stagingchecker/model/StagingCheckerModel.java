@@ -14,14 +14,18 @@
 
 package jorgediazest.stagingchecker.model;
 
+import com.liferay.portal.kernel.bean.ClassLoaderBeanHandler;
 import com.liferay.portal.kernel.dao.orm.Conjunction;
 import com.liferay.portal.kernel.dao.orm.Criterion;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
+import com.liferay.portal.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.Portlet;
 import com.liferay.portal.service.PortletLocalServiceUtil;
+
+import java.lang.reflect.Proxy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import jorgediazest.util.data.Data;
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelImpl;
+import jorgediazest.util.model.ModelUtil;
 import jorgediazest.util.service.Service;
 
 /**
@@ -78,12 +83,21 @@ public class StagingCheckerModel extends ModelImpl {
 	}
 
 	public Criterion generateQueryFilter() {
-		if (!this.isWorkflowEnabled()) {
-			return null;
+		Criterion classNameIdFilter = null;
+
+		if (this.hasAttribute("classNameId")) {
+			classNameIdFilter = this.generateCriterionFilter("classNameId=0");
 		}
 
-		return this.getProperty("status").in(
-			this.getStagedModelDataHandler().getExportableStatuses());
+		Criterion workflowFilter = null;
+
+		if (this.isWorkflowEnabled() && (getStagedModelDataHandler() != null)) {
+			workflowFilter = this.getProperty("status").in(
+				this.getStagedModelDataHandler().getExportableStatuses());
+		}
+
+		return ModelUtil.generateConjunctionQueryFilter(
+			classNameIdFilter, workflowFilter);
 	}
 
 	public Criterion getCompanyGroupFilter(long companyId) {
@@ -110,18 +124,36 @@ public class StagingCheckerModel extends ModelImpl {
 
 	public String getPortletId() {
 
-		if (this.getStagedModelDataHandler() == null) {
+		StagedModelDataHandler<?> stagedModelDataHandler =
+			this.getStagedModelDataHandler();
+
+		if (stagedModelDataHandler instanceof Proxy) {
+			try {
+				ClassLoaderBeanHandler classLoaderBeanHandler =
+					(ClassLoaderBeanHandler)
+						Proxy.getInvocationHandler(stagedModelDataHandler);
+				stagedModelDataHandler =
+					(StagedModelDataHandler<?>)classLoaderBeanHandler.getBean();
+			}
+			catch (Exception e) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(e, e);
+				}
+			}
+		}
+
+		if (stagedModelDataHandler == null) {
 			return null;
 		}
 
-		String stagedModelDataHandler =
-			this.getStagedModelDataHandler().getClass().getName();
+		if (!stagedHandlerPortletIdMap.containsKey(
+				stagedModelDataHandler.getClass().getName())) {
 
-		if (!stagedHandlerPortletIdMap.contains(stagedModelDataHandler)) {
 			fillStagingHandlerPortletIdMap();
 		}
 
-		return stagedHandlerPortletIdMap.get(stagedModelDataHandler);
+		return stagedHandlerPortletIdMap.get(
+			stagedModelDataHandler.getClass().getName());
 	}
 
 	public Integer hashCode(Data data) {
@@ -173,17 +205,7 @@ public class StagingCheckerModel extends ModelImpl {
 			addIndexedAttributes(workflowModelAttributes);
 		}
 
-		if (this.hasAttribute("version")) {
-			this.addIndexedAttribute("version");
-		}
-
-		if (this.hasAttribute("name")) {
-			this.addIndexedAttribute("name");
-		}
-
-		if (this.hasAttribute("title")) {
-			this.addIndexedAttribute("title");
-		}
+		this.addIndexedAttributes(this.getExactAttributes());
 
 		this.setFilter(this.generateQueryFilter());
 	}
@@ -208,19 +230,6 @@ public class StagingCheckerModel extends ModelImpl {
 		}
 	}
 
-	protected static Criterion generateConjunctionQueryFilter(
-		Criterion criterion1, Criterion criterion2) {
-
-		if (criterion1 == null) {
-			return criterion2;
-		}
-
-		Conjunction conjuntion = RestrictionsFactoryUtil.conjunction();
-		conjuntion.add(criterion1);
-		conjuntion.add(criterion2);
-		return conjuntion;
-	}
-
 	protected void addIndexedAttribute(String col) {
 		if (!liferayIndexedAttributes.contains(col)) {
 			liferayIndexedAttributes.add(col);
@@ -231,7 +240,11 @@ public class StagingCheckerModel extends ModelImpl {
 
 		for (int i = 0; i<modelAttributes.length; i++)
 		{
-			this.addIndexedAttribute((modelAttributes[i]));
+			String attrAux = modelAttributes[i];
+
+			if (this.hasAttribute(attrAux)) {
+				this.addIndexedAttribute(attrAux);
+			}
 		}
 	}
 
