@@ -14,7 +14,7 @@
 
 package jorgediazest.stagingchecker.model;
 
-import jorgediazest.util.service.Service;
+import java.util.Set;
 
 /**
  * @author Jorge Díaz
@@ -22,13 +22,10 @@ import jorgediazest.util.service.Service;
 public class IgnoreNameModel extends StagingCheckerModel {
 
 	@Override
-	public void init(
-			String classPackageName, String classSimpleName, Service service)
-		throws Exception {
-
-		super.init(classPackageName, classSimpleName, service);
-
-		this.removeIndexedAttribute("name");
+	public Set<String> calculateAttributesToCheck() {
+		Set<String> aux = super.calculateAttributesToCheck();
+		aux.remove("name");
+		return aux;
 	}
 
 }

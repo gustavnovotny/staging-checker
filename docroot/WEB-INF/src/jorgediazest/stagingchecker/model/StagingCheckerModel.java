@@ -15,9 +15,7 @@
 package jorgediazest.stagingchecker.model;
 
 import com.liferay.portal.kernel.bean.ClassLoaderBeanHandler;
-import com.liferay.portal.kernel.dao.orm.Conjunction;
 import com.liferay.portal.kernel.dao.orm.Criterion;
-import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -27,8 +25,10 @@ import com.liferay.portal.service.PortletLocalServiceUtil;
 
 import java.lang.reflect.Proxy;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jorgediazest.util.data.Data;
@@ -51,11 +51,53 @@ public class StagingCheckerModel extends ModelImpl {
 		new String[] { "uuid", "companyId", "createDate"};
 	public static String[] workflowModelAttributes = new String[] { "status" };
 
+	public Set<String> calculateAttributesToCheck() {
+		Set<String> attributesToCheckAux = new LinkedHashSet<String>();
+
+		attributesToCheckAux.add(this.getPrimaryKeyAttribute());
+		attributesToCheckAux.add("companyId");
+
+		if (this.isAuditedModel()) {
+			attributesToCheckAux.addAll(Arrays.asList(auditedModelAttributes));
+		}
+
+		if (this.isGroupedModel()) {
+			attributesToCheckAux.addAll(Arrays.asList(groupedModelAttributes));
+		}
+
+		if (this.isResourcedModel()) {
+			attributesToCheckAux.addAll(
+				Arrays.asList(resourcedModelAttributes));
+		}
+
+		if (this.isStagedModel()) {
+			attributesToCheckAux.addAll(Arrays.asList(stagedModelAttributes));
+		}
+
+		if (this.isWorkflowEnabled()) {
+			attributesToCheckAux.addAll(Arrays.asList(workflowModelAttributes));
+		}
+
+		attributesToCheckAux.addAll(Arrays.asList(this.getExactAttributes()));
+
+		Set<String> attributesToCheck = new LinkedHashSet<String>();
+
+		for (String attr : attributesToCheckAux) {
+			if (this.hasAttribute(attr)) {
+				attributesToCheck.add(attr);
+			}
+		}
+
+		return attributesToCheck;
+	}
+
 	@Override
 	public Model clone() {
 		StagingCheckerModel model;
 		try {
 			model = (StagingCheckerModel)super.clone();
+			model.attributesToCheck = new LinkedHashSet<String>(
+				this.attributesToCheck);
 		}
 		catch (Exception e) {
 			_log.error("Error executing clone");
@@ -100,26 +142,12 @@ public class StagingCheckerModel extends ModelImpl {
 			classNameIdFilter, workflowFilter);
 	}
 
-	public Criterion getCompanyGroupFilter(long companyId) {
-		return getCompanyGroupFilter(companyId, 0);
-	}
-
-	public Criterion getCompanyGroupFilter(long companyId, long groupId) {
-		Conjunction conjunction = RestrictionsFactoryUtil.conjunction();
-
-		if (this.hasAttribute("companyId")) {
-			conjunction.add(getProperty("companyId").eq(companyId));
+	public final Set<String> getAttributesToCheck() {
+		if (attributesToCheck == null) {
+			attributesToCheck = calculateAttributesToCheck();
 		}
 
-		if (this.hasAttribute("groupId") && (groupId != 0)) {
-			conjunction.add(getProperty("groupId").eq(groupId));
-		}
-
-		return conjunction;
-	}
-
-	public List<String> getLiferayIndexedAttributes() {
-		return liferayIndexedAttributes;
+		return attributesToCheck;
 	}
 
 	public String getPortletId() {
@@ -171,42 +199,6 @@ public class StagingCheckerModel extends ModelImpl {
 
 		super.init(classPackageName, classSimpleName, service);
 
-		this.liferayIndexedAttributes = new ArrayList<String>();
-
-		String primaryKey = this.getPrimaryKeyAttribute();
-
-		this.setIndexPrimaryKey(primaryKey);
-
-		if (Validator.isNull(primaryKey)) {
-			throw new RuntimeException("Missing primary key!!");
-		}
-
-		if (this.hasAttribute("companyId")) {
-			this.addIndexedAttribute("companyId");
-		}
-
-		if (this.isAuditedModel()) {
-			addIndexedAttributes(auditedModelAttributes);
-		}
-
-		if (this.isGroupedModel()) {
-			addIndexedAttributes(groupedModelAttributes);
-		}
-
-		if (this.isResourcedModel()) {
-			addIndexedAttributes(resourcedModelAttributes);
-		}
-
-		if (this.isStagedModel()) {
-			addIndexedAttributes(stagedModelAttributes);
-		}
-
-		if (this.isWorkflowEnabled()) {
-			addIndexedAttributes(workflowModelAttributes);
-		}
-
-		this.addIndexedAttributes(this.getExactAttributes());
-
 		this.setFilter(this.generateQueryFilter());
 	}
 
@@ -230,44 +222,12 @@ public class StagingCheckerModel extends ModelImpl {
 		}
 	}
 
-	protected void addIndexedAttribute(String col) {
-		if (!liferayIndexedAttributes.contains(col)) {
-			liferayIndexedAttributes.add(col);
-		}
-	}
-
-	protected void addIndexedAttributes(String[] modelAttributes) {
-
-		for (int i = 0; i<modelAttributes.length; i++)
-		{
-			String attrAux = modelAttributes[i];
-
-			if (this.hasAttribute(attrAux)) {
-				this.addIndexedAttribute(attrAux);
-			}
-		}
-	}
-
-	protected void removeIndexedAttribute(String col) {
-		while (liferayIndexedAttributes.contains(col)) {
-			liferayIndexedAttributes.remove(col);
-		}
-	}
-
-	protected void setIndexPrimaryKey(String col) {
-		if (liferayIndexedAttributes.contains(col)) {
-			liferayIndexedAttributes.remove(col);
-		}
-
-		liferayIndexedAttributes.add(0, col);
-	}
+	protected Set<String> attributesToCheck = null;
 
 	private static Log _log = LogFactoryUtil.getLog(StagingCheckerModel.class);
 
 	private static
 		ConcurrentHashMap<String, String> stagedHandlerPortletIdMap =
 			new ConcurrentHashMap<String, String>();
-
-	private List<String> liferayIndexedAttributes = null;
 
 }

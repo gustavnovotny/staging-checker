@@ -59,8 +59,6 @@ public class JournalArticle extends IgnoreCreateDateModel {
 
 		super.init(classPackageName, classSimpleName, service);
 
-		this.removeIndexedAttribute("createDate");
-
 		mapResourcePrimKeyUuid = initMapResourcePrimKeyUuid();
 	}
 
