@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.orm.Criterion;
 import com.liferay.portal.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.util.LocalizationUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.Portlet;
 import com.liferay.portal.service.PortletLocalServiceUtil;
@@ -122,6 +123,49 @@ public class StagingCheckerModel extends ModelImpl {
 
 	public boolean equals(Data data1, Data data2) {
 		return Validator.equals(data1.getUuid(), data2.getUuid());
+	}
+
+	public boolean exact(Data data1, Data data2) {
+		if (!data1.equals(data2)) {
+			return false;
+		}
+
+		if (!Validator.equals(data1.getCompanyId(), data2.getCompanyId())) {
+			return false;
+		}
+
+		if (this.hasAttribute("groupId") &&
+			!Validator.equals(data1.getGroupId(), data2.getGroupId())) {
+
+			return false;
+		}
+
+		for (String attr : exactAttributes) {
+			Object value1 = data1.get(attr);
+			Object value2 = data2.get(attr);
+
+			if (Validator.isNotNull(value1) &&
+				Validator.isNotNull(value2) &&
+				!Validator.equals(value1, value2)) {
+
+			if (value1 instanceof String && value2 instanceof String &&
+					("name".equals(attr) || "title".equals(attr) ||
+					 "description".equals(attr))) {
+
+					value1 = LocalizationUtil.getLocalizationMap(
+						(String)value1);
+					value2 = LocalizationUtil.getLocalizationMap(
+						(String)value2);
+
+					return Validator.equals(value1, value2);
+				}
+				else {
+					return false;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	public Criterion generateQueryFilter() {
