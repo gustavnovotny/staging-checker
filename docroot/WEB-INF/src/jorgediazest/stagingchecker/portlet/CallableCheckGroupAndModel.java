@@ -98,7 +98,7 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			boolean showOnlyLive = executionMode.contains(
 				ExecutionMode.SHOW_LIVE);
 
-			return ComparisonUtil.getComparation(
+			return ComparisonUtil.getComparison(
 				model, stagingData, liveData, showBothExact, showBothNotExact,
 				showOnlyStaging, showOnlyLive);
 		}
