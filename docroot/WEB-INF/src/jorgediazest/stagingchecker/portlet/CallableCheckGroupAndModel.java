@@ -20,16 +20,18 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.model.Group;
 import com.liferay.portal.service.GroupLocalServiceUtil;
 
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
 import jorgediazest.stagingchecker.ExecutionMode;
-import jorgediazest.stagingchecker.model.StagingCheckerModel;
 
 import jorgediazest.util.data.Comparison;
 import jorgediazest.util.data.ComparisonUtil;
 import jorgediazest.util.data.Data;
+import jorgediazest.util.model.Model;
 
 /**
  * @author Jorge Díaz
@@ -37,13 +39,30 @@ import jorgediazest.util.data.Data;
 public class CallableCheckGroupAndModel implements Callable<Comparison> {
 
 	CallableCheckGroupAndModel(
-		long companyId, long groupId, StagingCheckerModel model,
+		long companyId, long groupId, Model model,
 		Set<ExecutionMode> executionMode) {
 
 		this.companyId = companyId;
 		this.groupId = groupId;
 		this.model = model;
 		this.executionMode = executionMode;
+	}
+
+	public static Set<String> calculateAttributesToCheck(Model model) {
+		Set<String> attributesToCheck = new LinkedHashSet<String>();
+
+		attributesToCheck.add(model.getPrimaryKeyAttribute());
+		attributesToCheck.add("companyId");
+		attributesToCheck.add("uuid");
+
+		if (model.isResourcedModel()) {
+			attributesToCheck.add("resourcePrimKey");
+		}
+
+		attributesToCheck.addAll(
+			Arrays.asList(model.getDataComparator().getExactAttributes()));
+
+		return attributesToCheck;
 	}
 
 	@Override
@@ -77,8 +96,8 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			Criterion stagingFilter = model.getCompanyGroupFilter(
 				companyId, stagingGroupId);
 
-			String[] attributesToCheck =
-				model.getAttributesToCheck().toArray(new String[0]);
+			String[] attributesToCheck = calculateAttributesToCheck(
+				model).toArray(new String[0]);
 
 			Set<Data> stagingData = new HashSet<Data>(
 				model.getData(attributesToCheck, stagingFilter).values());
@@ -113,6 +132,6 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 	private long companyId = -1;
 	private Set<ExecutionMode> executionMode = null;
 	private long groupId = -1;
-	private StagingCheckerModel model = null;
+	private Model model = null;
 
 }

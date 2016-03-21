@@ -26,12 +26,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import jorgediazest.util.data.Data;
 import jorgediazest.util.model.Model;
+import jorgediazest.util.model.ModelFactory.DataComparatorFactory;
+import jorgediazest.util.model.ModelImpl;
 import jorgediazest.util.service.Service;
 
 /**
  * @author Jorge Díaz
  */
-public class JournalArticle extends IgnoreCreateDateModel {
+public class JournalArticle extends ModelImpl {
 
 	public Map<Long, Data> getData(String[] attributes, Criterion filter)
 		throws Exception {
@@ -45,7 +47,7 @@ public class JournalArticle extends IgnoreCreateDateModel {
 			Object version = data.get("version");
 
 			if ((resourceUuid != null) && (version != null)) {
-				data.setUuid(resourceUuid + "_" + version.toString());
+				data.set("uuid", resourceUuid + "_" + version.toString());
 			}
 		}
 
@@ -54,10 +56,12 @@ public class JournalArticle extends IgnoreCreateDateModel {
 
 	@Override
 	public void init(
-			String classPackageName, String classSimpleName, Service service)
+			String classPackageName, String classSimpleName, Service service,
+			DataComparatorFactory dataComparatorfactory)
 		throws Exception {
 
-		super.init(classPackageName, classSimpleName, service);
+		super.init(
+			classPackageName, classSimpleName, service, dataComparatorfactory);
 
 		mapResourcePrimKeyUuid = initMapResourcePrimKeyUuid();
 	}

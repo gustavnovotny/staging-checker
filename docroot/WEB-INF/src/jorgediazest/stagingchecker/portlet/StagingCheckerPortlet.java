@@ -17,6 +17,7 @@ package jorgediazest.stagingchecker.portlet;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.shard.ShardUtil;
 import com.liferay.portal.kernel.exception.SystemException;
+import com.liferay.portal.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -51,15 +52,16 @@ import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
 
 import jorgediazest.stagingchecker.ExecutionMode;
-import jorgediazest.stagingchecker.model.IgnoreCreateDateModel;
-import jorgediazest.stagingchecker.model.IgnoreNameModel;
+import jorgediazest.stagingchecker.data.DataComparatorUUID;
 import jorgediazest.stagingchecker.model.JournalArticle;
-import jorgediazest.stagingchecker.model.StagingCheckerModel;
 
 import jorgediazest.util.data.Comparison;
 import jorgediazest.util.data.ComparisonUtil;
+import jorgediazest.util.data.DataComparator;
+import jorgediazest.util.model.DefaultModel;
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelFactory;
+import jorgediazest.util.model.ModelFactory.DataComparatorFactory;
 import jorgediazest.util.model.ModelUtil;
 
 /**
@@ -68,21 +70,6 @@ import jorgediazest.util.model.ModelUtil;
  * @author Jorge Díaz
  */
 public class StagingCheckerPortlet extends MVCPortlet {
-
-	public static StagingCheckerModel castModel(Model model) {
-		try {
-			return (StagingCheckerModel)model;
-		}
-		catch (Exception e) {
-			if (_log.isWarnEnabled()) {
-				_log.warn(
-					"Model: " + model.getName() + " EXCEPTION: " +
-						e.getClass() + " - " + e.getMessage(), e);
-			}
-
-			return null;
-		}
-	}
 
 	public static Map<Long, List<Comparison>> executeCheck(
 		Company company, List<Long> groupIds, List<String> classNames,
@@ -93,41 +80,88 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			new HashMap<String, Class<? extends Model>>();
 
 		modelClassMap.put(
-			"com.liferay.portlet.asset.model.AssetCategory",
-			IgnoreCreateDateModel.class);
-
-		modelClassMap.put(
-			"com.liferay.portlet.asset.model.AssetVocabulary",
-			IgnoreCreateDateModel.class);
-
-		modelClassMap.put(
 			"com.liferay.portlet.journal.model.JournalArticle",
 			JournalArticle.class);
 
-		modelClassMap.put(
-			"com.liferay.portlet.documentlibrary.model.DLFileEntry",
-			IgnoreNameModel.class);
-
 		ModelFactory modelFactory = new ModelFactory(
-			StagingCheckerModel.class, modelClassMap);
+			DefaultModel.class, modelClassMap);
+
+		DataComparatorFactory dataComparatorFactory =
+			new DataComparatorFactory() {
+
+			protected DataComparator defaultComparator =
+				new DataComparatorUUID(new String[] {
+
+				"createDate", "status", "version", "name", "title",
+				"description", "size" });
+
+			protected DataComparator noCreateDateComparator =
+				new DataComparatorUUID(new String[] {
+
+				"status", "version", "name", "title", "description", "size" });
+
+			protected DataComparator noNameComparator =
+				new DataComparatorUUID(new String[] {
+
+				"createDate", "status", "version", "title", "description",
+				"size" });
+
+			@Override
+			public DataComparator getDataComparator(Model model) {
+				if ("com.liferay.portlet.asset.model.AssetCategory".equals(
+						model.getClassName()) ||
+					"com.liferay.portlet.asset.model.AssetVocabulary".equals(
+							model.getClassName()) ||
+					"com.liferay.portlet.journal.model.JournalArticle".equals(
+						model.getClassName())) {
+
+					return noCreateDateComparator;
+				}
+
+				final String strDLFileEntry =
+					"com.liferay.portlet.documentlibrary.model.DLFileEntry";
+
+				if (strDLFileEntry.equals(model.getClassName())) {
+					return noNameComparator;
+				}
+
+				return defaultComparator;
+			}
+
+		};
+
+		modelFactory.setDataComparatorFactory(dataComparatorFactory);
 
 		Map<String, Model> modelMap = modelFactory.getModelMap(classNames);
 
-		List<StagingCheckerModel> modelList =
-			new ArrayList<StagingCheckerModel>();
+		List<Model> modelList = new ArrayList<Model>();
 
-		for (Model modelAux : modelMap.values()) {
-			StagingCheckerModel model = castModel(modelAux);
-
+		for (Model model : modelMap.values()) {
 			if (_log.isDebugEnabled()) {
 				_log.debug(
 					model + " - isStagedModel: " + model.isStagedModel() +
 						" - isGroupedModel: " + model.isGroupedModel() +
-								" - portletId: " + model.getPortletId());
+							" - portlets: " + model.getPortlets());
 			}
 
 			if (model.isStagedModel() && model.isGroupedModel() &&
-				(model.getPortletId() != null)) {
+				(model.getPortlet() != null)) {
+
+				if (model.hasAttribute("classNameId")) {
+					model.addFilter(
+						model.generateCriterionFilter("classNameId=0"));
+				}
+
+				StagedModelDataHandler<?> stagedModelDataHandler =
+					model.getStagedModelDataHandler();
+
+				if ((stagedModelDataHandler != null) &&
+					model.isWorkflowEnabled()) {
+
+					model.addFilter(
+						model.getProperty("status").in(
+							stagedModelDataHandler.getExportableStatuses()));
+				}
 
 				if (model.getClassName().startsWith(
 						"com.liferay.portlet.documentlibrary.model.") &&
@@ -158,7 +192,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			List<Future<Comparison>> futureResultList =
 				new ArrayList<Future<Comparison>>();
 
-			for (StagingCheckerModel model : modelList) {
+			for (Model model : modelList) {
 				CallableCheckGroupAndModel c =
 					new CallableCheckGroupAndModel(
 						companyId, groupId, model, executionMode);
