@@ -52,7 +52,7 @@ import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
 
 import jorgediazest.stagingchecker.ExecutionMode;
-import jorgediazest.stagingchecker.data.DataComparatorUUID;
+import jorgediazest.stagingchecker.data.DataModelUUIDComparator;
 import jorgediazest.stagingchecker.model.JournalArticle;
 
 import jorgediazest.util.data.Comparison;
@@ -90,18 +90,18 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			new DataComparatorFactory() {
 
 			protected DataComparator defaultComparator =
-				new DataComparatorUUID(new String[] {
+				new DataModelUUIDComparator(new String[] {
 
 				"createDate", "status", "version", "name", "title",
 				"description", "size" });
 
 			protected DataComparator noCreateDateComparator =
-				new DataComparatorUUID(new String[] {
+				new DataModelUUIDComparator(new String[] {
 
 				"status", "version", "name", "title", "description", "size" });
 
 			protected DataComparator noNameComparator =
-				new DataComparatorUUID(new String[] {
+				new DataModelUUIDComparator(new String[] {
 
 				"createDate", "status", "version", "title", "description",
 				"size" });

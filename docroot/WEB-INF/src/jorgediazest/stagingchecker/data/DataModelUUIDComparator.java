@@ -18,14 +18,14 @@ import com.liferay.portal.kernel.util.LocalizationUtil;
 import com.liferay.portal.kernel.util.Validator;
 
 import jorgediazest.util.data.Data;
-import jorgediazest.util.data.DataComparator;
+import jorgediazest.util.data.DataModelComparator;
 
 /**
  * @author Jorge Díaz
  */
-public class DataComparatorUUID extends DataComparator {
+public class DataModelUUIDComparator extends DataModelComparator {
 
-	public DataComparatorUUID(String[] exactAttributes) {
+	public DataModelUUIDComparator(String[] exactAttributes) {
 		super(exactAttributes);
 	}
 
