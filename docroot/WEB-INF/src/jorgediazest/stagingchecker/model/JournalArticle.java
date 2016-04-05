@@ -67,8 +67,8 @@ public class JournalArticle extends ModelImpl {
 	}
 
 	public Map<Long, String> initMapResourcePrimKeyUuid() throws Exception {
-		Model modelResource = modelFactory.getModelObject(
-			null, JournalArticleResource.class.getName());
+		Model modelResource = modelFactory.getModelObjectFromPortal(
+			JournalArticleResource.class.getName());
 
 		DynamicQuery queryModelResource =
 			modelResource.getService().newDynamicQuery();
