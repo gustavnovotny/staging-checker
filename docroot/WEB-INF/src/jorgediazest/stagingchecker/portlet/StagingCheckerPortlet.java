@@ -338,7 +338,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			}
 		}
 
-		request.setAttribute("title", "Check Index");
+		request.setAttribute("title", "Check Staging");
 		request.setAttribute("executionMode", executionMode);
 		request.setAttribute("companyProcessTime", companyProcessTime);
 		request.setAttribute("companyResultDataMap", companyResultDataMap);
