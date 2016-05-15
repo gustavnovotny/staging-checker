@@ -35,10 +35,12 @@ import jorgediazest.util.service.Service;
  */
 public class JournalArticle extends ModelImpl {
 
-	public Map<Long, Data> getData(String[] attributes, Criterion filter)
+	public Map<Long, Data> getData(
+			String[] attributes, String mapKeyAttribute, Criterion filter)
 		throws Exception {
 
-		Map<Long, Data> dataMap = super.getData(attributes, filter);
+		Map<Long, Data> dataMap = super.getData(
+			attributes, mapKeyAttribute, filter);
 
 		for (Data data : dataMap.values()) {
 			String resourceUuid = mapResourcePrimKeyUuid.get(
@@ -67,7 +69,7 @@ public class JournalArticle extends ModelImpl {
 	}
 
 	public Map<Long, String> initMapResourcePrimKeyUuid() throws Exception {
-		Model modelResource = modelFactory.getModelObjectFromPortal(
+		Model modelResource = modelFactory.getModelObject(
 			JournalArticleResource.class);
 
 		DynamicQuery queryModelResource =
