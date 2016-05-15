@@ -38,16 +38,6 @@ import jorgediazest.util.model.Model;
  */
 public class CallableCheckGroupAndModel implements Callable<Comparison> {
 
-	CallableCheckGroupAndModel(
-		long companyId, long groupId, Model model,
-		Set<ExecutionMode> executionMode) {
-
-		this.companyId = companyId;
-		this.groupId = groupId;
-		this.model = model;
-		this.executionMode = executionMode;
-	}
-
 	public static Set<String> calculateAttributesToCheck(Model model) {
 		Set<String> attributesToCheck = new LinkedHashSet<String>();
 
@@ -63,6 +53,16 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			Arrays.asList(model.getDataComparator().getExactAttributes()));
 
 		return attributesToCheck;
+	}
+
+	public CallableCheckGroupAndModel(
+		long companyId, long groupId, Model model,
+		Set<ExecutionMode> executionMode) {
+
+		this.companyId = companyId;
+		this.groupId = groupId;
+		this.model = model;
+		this.executionMode = executionMode;
 	}
 
 	@Override
@@ -121,8 +121,8 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 				model, stagingData, liveData, showBothExact, showBothNotExact,
 				showOnlyStaging, showOnlyLive);
 		}
-		catch (Exception e) {
-			return ComparisonUtil.getError(model, e);
+		catch (Throwable t) {
+			return ComparisonUtil.getError(model, t);
 		}
 	}
 
