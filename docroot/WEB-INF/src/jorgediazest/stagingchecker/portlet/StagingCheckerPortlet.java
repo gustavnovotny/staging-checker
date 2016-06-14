@@ -25,6 +25,7 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.Company;
 import com.liferay.portal.model.Group;
+import com.liferay.portal.security.auth.CompanyThreadLocal;
 import com.liferay.portal.service.ClassNameLocalServiceUtil;
 import com.liferay.portal.service.CompanyLocalServiceUtil;
 import com.liferay.portal.service.GroupLocalServiceUtil;
@@ -32,6 +33,7 @@ import com.liferay.portal.util.PortalUtil;
 import com.liferay.util.bridges.mvc.MVCPortlet;
 import com.liferay.util.portlet.PortletProps;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -50,6 +52,9 @@ import java.util.concurrent.Future;
 
 import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
+import javax.portlet.PortletException;
+import javax.portlet.RenderRequest;
+import javax.portlet.RenderResponse;
 
 import jorgediazest.stagingchecker.ExecutionMode;
 import jorgediazest.stagingchecker.data.DataModelUUIDComparator;
@@ -93,18 +98,19 @@ public class StagingCheckerPortlet extends MVCPortlet {
 				new DataModelUUIDComparator(new String[] {
 
 				"createDate", "status", "version", "name", "title",
-				"description", "size" });
+				"description", "size", "AssetTag.uuid", "AssetCategory.uuid" });
 
 			protected DataComparator noCreateDateComparator =
 				new DataModelUUIDComparator(new String[] {
 
-				"status", "version", "name", "title", "description", "size" });
+				"status", "version", "name", "title", "description", "size",
+				"AssetTag.uuid", "AssetCategory.uuid" });
 
 			protected DataComparator noNameComparator =
 				new DataModelUUIDComparator(new String[] {
 
 				"createDate", "status", "version", "title", "description",
-				"size" });
+				"size", "AssetTag.uuid", "AssetCategory.uuid" });
 
 			@Override
 			public DataComparator getDataComparator(Model model) {
@@ -261,6 +267,16 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		return _log;
 	}
 
+	public void doView(
+		RenderRequest renderRequest, RenderResponse renderResponse)
+			throws IOException, PortletException {
+
+		int numberOfThreads = getNumberOfThreads(renderRequest);
+		renderRequest.setAttribute("numberOfThreads", numberOfThreads);
+
+		super.doView(renderRequest, renderResponse);
+	}
+
 	public void executeCheck(ActionRequest request, ActionResponse response)
 		throws Exception {
 
@@ -294,6 +310,8 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 		for (Company company : companies) {
 			try {
+				CompanyThreadLocal.setCompanyId(company.getCompanyId());
+
 				ShardUtil.pushCompanyService(company.getCompanyId());
 
 				List<String> classNames = getClassNames(filterClassNameArr);
@@ -302,13 +320,10 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 				long startTime = System.currentTimeMillis();
 
-				int threadsExecutor = GetterUtil.getInteger(
-					PortletProps.get("number.threads"),1);
-
 				Map<Long, List<Comparison>> resultDataMap =
 					StagingCheckerPortlet.executeCheck(
 						company, groupIds, classNames, executionMode,
-						threadsExecutor);
+						getNumberOfThreads(request));
 
 				long endTime = System.currentTimeMillis();
 
@@ -325,13 +340,13 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 				companyProcessTime.put(company, (endTime - startTime));
 			}
-			catch (Exception e) {
-				StringWriter sw = new StringWriter();
-				PrintWriter pw = new PrintWriter(sw);
-				pw.println("Error during execution: " + e.getMessage());
-				e.printStackTrace(pw);
-				companyError.put(company, sw.toString());
-				_log.error(e, e);
+			catch (Throwable t) {
+				StringWriter swt = new StringWriter();
+				PrintWriter pwt = new PrintWriter(swt);
+				pwt.println("Error during execution: " + t.getMessage());
+				t.printStackTrace(pwt);
+				companyError.put(company, swt.toString());
+				_log.error(t, t);
 			}
 			finally {
 				ShardUtil.popCompanyService();
@@ -360,7 +375,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		List<String> classNames = new ArrayList<String>();
 
 		for (String className : allClassName) {
-			if (className == null) {
+			if (ignoreClassName(className)) {
 				continue;
 			}
 
@@ -369,8 +384,8 @@ public class StagingCheckerPortlet extends MVCPortlet {
 				continue;
 			}
 
-			for (int i = 0; i < filterClassNameArr.length; i++) {
-				if (className.contains(filterClassNameArr[i])) {
+			for (String filterClassName : filterClassNameArr) {
+				if (className.contains(filterClassName)) {
 					classNames.add(className);
 					break;
 				}
@@ -412,7 +427,42 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		return groupIds;
 	}
 
+	public int getNumberOfThreads(ActionRequest actionRequest) {
+		int def = GetterUtil.getInteger(PortletProps.get("number.threads"),1);
+
+		int num = ParamUtil.getInteger(actionRequest, "numberOfThreads", def);
+
+		return (num == 0) ? def : num;
+	}
+
+	public int getNumberOfThreads(RenderRequest renderRequest) {
+		int def = GetterUtil.getInteger(PortletProps.get("number.threads"), 1);
+
+		int num = ParamUtil.getInteger(renderRequest, "numberOfThreads", def);
+
+		return (num == 0) ? def : num;
+	}
+
+	public boolean ignoreClassName(String className) {
+		if (Validator.isNull(className)) {
+			return true;
+		}
+
+		for (String ignoreClassName : ignoreClassNames) {
+			if (ignoreClassName.equals(className)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private static Log _log = LogFactoryUtil.getLog(
 		StagingCheckerPortlet.class);
+
+	private static String[] ignoreClassNames = new String[] {
+		"com.liferay.portal.kernel.repository.model.FileEntry",
+		"com.liferay.portal.kernel.repository.model.Folder",
+		"com.liferay.portal.model.UserPersonalSite"};
 
 }

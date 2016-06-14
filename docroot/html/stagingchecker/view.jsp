@@ -88,6 +88,9 @@
 			<aui:input helpMessage="filter-group-id-help" name="filterGroupId" type="text" value="" />
 			<aui:input name="dumpAllObjectsToLog" type="checkbox" value="false" />
 		</aui:column>
+		<aui:column>
+			<aui:input helpMessage="number-of-threads-help" name="numberOfThreads" type="text" value='<%= request.getAttribute("numberOfThreads") %>' />
+		</aui:column>
 	</aui:fieldset>
 
 	<aui:button-row>

@@ -15,10 +15,15 @@
 package jorgediazest.stagingchecker.portlet;
 
 import com.liferay.portal.kernel.dao.orm.Criterion;
+import com.liferay.portal.kernel.dao.shard.ShardUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.model.Group;
+import com.liferay.portal.security.auth.CompanyThreadLocal;
 import com.liferay.portal.service.GroupLocalServiceUtil;
+import com.liferay.portlet.asset.model.AssetCategory;
+import com.liferay.portlet.asset.model.AssetEntry;
+import com.liferay.portlet.asset.model.AssetTag;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -65,14 +70,51 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 		this.executionMode = executionMode;
 	}
 
+	public Set<String> calculateRelatedAttributesToCheck(Model model) {
+		Set<String> relatedAttributesToCheck = new LinkedHashSet<String>();
+
+		String attributeClassPK = "pk";
+
+		if (model.isResourcedModel()) {
+			attributeClassPK = "resourcePrimKey";
+		}
+
+		String mapping = attributeClassPK+"=classPK";
+
+		relatedAttributesToCheck.add(
+			AssetEntry.class.getName() + ":" + mapping +
+			":AssetEntry.entryId=entryId, =classPK");
+		relatedAttributesToCheck.add(
+			AssetEntry.class.getName() + ":" +
+			"AssetEntry.entryId=MappingTable:" +
+			"AssetEntries_AssetCategories.categoryId=categoryId");
+		relatedAttributesToCheck.add(
+			AssetCategory.class.getName() + ":" +
+			"AssetEntries_AssetCategories.categoryId=categoryId:" +
+			" =categoryId,AssetCategory.uuid=uuid");
+		relatedAttributesToCheck.add(
+			AssetEntry.class.getName() + ":" +
+			"AssetEntry.entryId=MappingTable:" +
+			"AssetEntries_AssetTags.tagId=tagId");
+		relatedAttributesToCheck.add(
+			AssetTag.class.getName() + ":" +
+			"AssetEntries_AssetTags.tagId=tagId: =tagId,AssetTag.uuid=uuid");
+
+		return relatedAttributesToCheck;
+	}
+
 	@Override
 	public Comparison call() throws Exception {
 
 		try {
+			CompanyThreadLocal.setCompanyId(companyId);
+
+			ShardUtil.pushCompanyService(companyId);
+
 			if (_log.isInfoEnabled()) {
 				_log.info(
 					"Model: " + model.getName() + " - CompanyId: " +
-					companyId + " - GroupId: " + groupId);
+						companyId + " - GroupId: " + groupId);
 			}
 
 			if (!model.hasAttribute("groupId")) {
@@ -99,14 +141,21 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			String[] attributesToCheck = calculateAttributesToCheck(
 				model).toArray(new String[0]);
 
+			String[] relatedAttrToCheck = calculateRelatedAttributesToCheck(
+				model).toArray(new String[0]);
+
 			Set<Data> stagingData = new HashSet<Data>(
-				model.getData(attributesToCheck, stagingFilter).values());
+				model.getData(
+					attributesToCheck, relatedAttrToCheck,
+					stagingFilter).values());
 
 			Criterion liveFilter = model.getCompanyGroupFilter(
 				companyId, groupId);
 
 			Set<Data> liveData = new HashSet<Data>(
-				model.getData(attributesToCheck, liveFilter).values());
+				model.getData(
+					attributesToCheck, relatedAttrToCheck,
+					liveFilter).values());
 
 			boolean showBothExact = executionMode.contains(
 				ExecutionMode.SHOW_BOTH_EXACT);
@@ -123,6 +172,9 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 		}
 		catch (Throwable t) {
 			return ComparisonUtil.getError(model, t);
+		}
+		finally {
+			ShardUtil.popCompanyService();
 		}
 	}
 
