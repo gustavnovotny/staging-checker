@@ -57,6 +57,10 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 		attributesToCheck.addAll(
 			Arrays.asList(model.getDataComparator().getExactAttributes()));
 
+		if (AssetTag.class.getName().equals(model.getClassName())) {
+			attributesToCheck.add("name");
+		}
+
 		return attributesToCheck;
 	}
 
@@ -98,7 +102,7 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			"AssetEntries_AssetTags.tagId=tagId");
 		relatedAttributesToCheck.add(
 			AssetTag.class.getName() + ":" +
-			"AssetEntries_AssetTags.tagId=tagId: =tagId,AssetTag.uuid=uuid");
+			"AssetEntries_AssetTags.tagId=tagId: =tagId,AssetTag.name=name");
 
 		return relatedAttributesToCheck;
 	}

@@ -98,19 +98,19 @@ public class StagingCheckerPortlet extends MVCPortlet {
 				new DataModelUUIDComparator(new String[] {
 
 				"createDate", "status", "version", "name", "title",
-				"description", "size", "AssetTag.uuid", "AssetCategory.uuid" });
+				"description", "size", "AssetTag.name", "AssetCategory.uuid" });
 
 			protected DataComparator noCreateDateComparator =
 				new DataModelUUIDComparator(new String[] {
 
 				"status", "version", "name", "title", "description", "size",
-				"AssetTag.uuid", "AssetCategory.uuid" });
+				"AssetTag.name", "AssetCategory.uuid" });
 
 			protected DataComparator noNameComparator =
 				new DataModelUUIDComparator(new String[] {
 
 				"createDate", "status", "version", "title", "description",
-				"size", "AssetTag.uuid", "AssetCategory.uuid" });
+				"size", "AssetTag.name", "AssetCategory.uuid" });
 
 			@Override
 			public DataComparator getDataComparator(Model model) {
