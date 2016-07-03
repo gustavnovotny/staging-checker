@@ -62,10 +62,6 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 		attributesToCheck.addAll(
 			Arrays.asList(mq.getDataComparator().getExactAttributes()));
 
-		if (AssetTag.class.getName().equals(model.getClassName())) {
-			attributesToCheck.add("name");
-		}
-
 		return attributesToCheck;
 	}
 
@@ -107,7 +103,7 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			"AssetEntries_AssetTags.tagId=tagId");
 		relatedAttributesToCheck.add(
 			AssetTag.class.getName() + ":" +
-			"AssetEntries_AssetTags.tagId=tagId: =tagId,AssetTag.name=name");
+			"AssetEntries_AssetTags.tagId=tagId: =tagId,AssetTag.uuid=uuid");
 		relatedAttributesToCheck.add(
 			ResourcePermission.class.getName() + ":" + attributeClassPK +
 			"=primKey:[ =primKey,roleId,ownerId,actionIds]:companyId=" +
