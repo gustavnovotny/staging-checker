@@ -97,17 +97,25 @@
 %>
 
 <aui:form action="<%= executeCheckURL %>" method="POST" name="fm">
-	<aui:fieldset>
-		<aui:column>
+	<aui:row>
+		<aui:col width="25">
 			<aui:input helpMessage="output-both-exact-help" name="outputBothExact" type="checkbox" value="false" />
 			<aui:input helpMessage="output-both-not-exact-help" name="outputBothNotExact" type="checkbox" value="true" />
 			<aui:input helpMessage="output-staging-help" name="outputStaging" type="checkbox" value="true" />
 			<aui:input helpMessage="output-live-help" name="outputLive" type="checkbox" value="true" />
-		</aui:column>
-		<aui:column>
-			<aui:select helpMessage="filter-class-name-help" multiple="true" name="filterClassName" onChange='<%= renderResponse.getNamespace() + "disableReindexAndRemoveOrphansButtons(this);" %>' onClick='<%= renderResponse.getNamespace() + "disableReindexAndRemoveOrphansButtons(this);" %>' style="height: 240px; width: 250px;">
-				<aui:option selected="<%= filterClassNameSelected.isEmpty() %>" value=""><liferay-ui:message key="all" /></aui:option>
-				<aui:option disabled="true" value="-">--------</aui:option>
+		</aui:col>
+		<aui:col width="25">
+			<aui:select helpMessage="filter-class-name-help" multiple="true" name="filterClassName" onChange='<%= renderResponse.getNamespace() + "disableReindexAndRemoveOrphansButtons(this);" %>' onClick='<%= renderResponse.getNamespace() + "disableReindexAndRemoveOrphansButtons(this);" %>' style="height: 240px;">
+
+<%
+				String selectedAllModels = "";
+				if (filterClassNameSelected.isEmpty()) {
+					selectedAllModels = "selected";
+				}
+%>
+
+				<option <%= selectedAllModels %> value=""><liferay-ui:message key="all" /></option>
+				<option disabled="true" value="-">--------</option>
 
 <%
 				for (Model model : modelList) {
@@ -116,39 +124,60 @@
 					if (Validator.isNull(displayName)) {
 						displayName = className;
 					}
+
+					String selectedModel = "";
+					if (filterClassNameSelected.contains(className)) {
+						selectedModel = "selected";
+					}
 %>
 
-					<aui:option selected="<%= filterClassNameSelected.contains(className) %>" value="<%= className %>"><%= displayName %></aui:option>
+					<option <%= selectedModel %> value="<%= className %>"><%= displayName %></option>
 
 <%
 				}
 %>
 
 			</aui:select>
-		</aui:column>
-		<aui:column>
-			<aui:select helpMessage="filter-group-id-help" multiple="true" name="filterGroupId" onChange='<%= renderResponse.getNamespace() + "disableReindexAndRemoveOrphansButtons(this);" %>' onClick='<%= renderResponse.getNamespace() + "disableReindexAndRemoveOrphansButtons(this);" %>' style="height: 240px; width: 250px;">
-				<aui:option selected='<%= filterGroupIdSelected.isEmpty() || filterGroupIdSelected.contains("-1000") %>' value="-1000"><liferay-ui:message key="filter-group-id-no-filter" /></aui:option>
-				<aui:option disabled="true" value="-">--------</aui:option>
+		</aui:col>
+		<aui:col width="25">
+			<aui:select helpMessage="filter-group-id-help" multiple="true" name="filterGroupId" onChange='<%= renderResponse.getNamespace() + "disableReindexAndRemoveOrphansButtons(this);" %>' onClick='<%= renderResponse.getNamespace() + "disableReindexAndRemoveOrphansButtons(this);" %>' style="height: 240px;">
+
+<%
+String selectedNoFilter = "";
+String selectedWithoutGroupId = "";
+String selectedAllSites = "";
+String selectedUserSites = "";
+if (filterGroupIdSelected.isEmpty() || filterGroupIdSelected.contains("-1000")) {
+	selectedNoFilter = "selected";
+}
+%>
+
+				<option <%= selectedNoFilter %> value="-1000"><liferay-ui:message key="filter-group-id-no-filter" /></option>
+				<option disabled="true" value="-">--------</option>
 
 <%
 				for (int i=0;i<groupIdList.size();i++) {
 					String groupIdStr = "" + groupIdList.get(i);
+
+					String selectedGroup = "";
+					if (filterGroupIdSelected.contains(groupIdStr)) {
+						selectedGroup = "selected";
+					}
 %>
 
-					<aui:option selected="<%= filterGroupIdSelected.contains(groupIdStr) %>" value="<%= groupIdStr %>"><%= groupDescriptionList.get(i) %></aui:option>
+					<option <%= selectedGroup %> value="<%= groupIdStr %>"><%= groupDescriptionList.get(i) %></option>
 
 <%
 				}
 %>
 
 			</aui:select>
-		</aui:column>
-		<aui:column>
+		</aui:col>
+		<aui:col width="25">
 			<aui:input name="dumpAllObjectsToLog" type="checkbox" value="false" />
 			<aui:input helpMessage="number-of-threads-help" name="numberOfThreads" type="text" value='<%= request.getAttribute("numberOfThreads") %>' />
-		</aui:column>
-	</aui:fieldset>
+		</aui:col>
+	</aui:row>
 
 	<aui:button-row>
 		<aui:button type="submit" value="check-staging" />
@@ -164,6 +193,7 @@
 <%
 	}
 %>
+
 		<aui:button onClick="<%= viewURL %>" type="button" value="clean" />
 
 	</aui:button-row>
@@ -224,4 +254,3 @@
 %>
 
 </div></div></div>
-
