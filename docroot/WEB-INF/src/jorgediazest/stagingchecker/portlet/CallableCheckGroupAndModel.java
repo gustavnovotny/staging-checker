@@ -14,12 +14,11 @@
 
 package jorgediazest.stagingchecker.portlet;
 
-import com.liferay.portal.kernel.dao.shard.ShardUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.model.Group;
-import com.liferay.portal.security.auth.CompanyThreadLocal;
-import com.liferay.portal.service.GroupLocalServiceUtil;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -70,8 +69,6 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 		try {
 			CompanyThreadLocal.setCompanyId(companyId);
 
-			ShardUtil.pushCompanyService(companyId);
-
 			if (_log.isInfoEnabled()) {
 				_log.info(
 					"Model: " + model.getName() + " - CompanyId: " +
@@ -118,9 +115,6 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 		}
 		catch (Throwable t) {
 			return ComparisonUtil.getError(model, t);
-		}
-		finally {
-			ShardUtil.popCompanyService();
 		}
 	}
 

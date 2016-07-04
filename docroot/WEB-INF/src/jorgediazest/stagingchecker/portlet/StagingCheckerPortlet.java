@@ -20,9 +20,8 @@ import com.liferay.portal.kernel.dao.orm.OrderFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.Projection;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
-import com.liferay.portal.kernel.dao.shard.ShardUtil;
-import com.liferay.portal.kernel.deploy.DeployManagerUtil;
 import com.liferay.portal.kernel.exception.SystemException;
+import com.liferay.exportimport.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.plugin.PluginPackage;
@@ -32,14 +31,13 @@ import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.model.Company;
-import com.liferay.portal.model.Group;
-import com.liferay.portal.model.Portlet;
-import com.liferay.portal.security.auth.CompanyThreadLocal;
-import com.liferay.portal.service.ClassNameLocalServiceUtil;
-import com.liferay.portal.service.GroupLocalServiceUtil;
-import com.liferay.portal.util.PortalUtil;
-import com.liferay.util.bridges.mvc.MVCPortlet;
+import com.liferay.portal.kernel.model.Company;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.service.ClassNameLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -363,8 +361,6 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			try {
 				CompanyThreadLocal.setCompanyId(company.getCompanyId());
 
-				ShardUtil.pushCompanyService(company.getCompanyId());
-
 				List<String> classNames = getClassNames(filterClassNameArr);
 
 				List<Long> groupIds = getGroupIds(company, filterGroupIdArr);
@@ -398,9 +394,6 @@ public class StagingCheckerPortlet extends MVCPortlet {
 				t.printStackTrace(pwt);
 				companyError.put(company, swt.toString());
 				_log.error(t, t);
-			}
-			finally {
-				ShardUtil.popCompanyService();
 			}
 		}
 
