@@ -15,7 +15,6 @@
 package jorgediazest.stagingchecker.model;
 
 import com.liferay.portal.kernel.dao.orm.Criterion;
-import com.liferay.portlet.journal.model.JournalArticleResource;
 
 import java.util.Map;
 
@@ -35,7 +34,7 @@ public class JournalArticle extends ModelQueryImpl {
 			attributes, mapKeyAttribute, filter);
 
 		addRelatedModelData(
-			dataMap, JournalArticleResource.class.getName(),
+			dataMap, "com.liferay.journal.model.JournalArticleResource",
 			" =resourcePrimKey,resourceUuid=uuid".split(","),
 			"resourcePrimKey".split(","), false, false);
 

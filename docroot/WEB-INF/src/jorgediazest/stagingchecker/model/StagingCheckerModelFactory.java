@@ -14,7 +14,7 @@
 
 package jorgediazest.stagingchecker.model;
 
-import com.liferay.portal.kernel.lar.StagedModelDataHandler;
+import com.liferay.exportimport.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 
