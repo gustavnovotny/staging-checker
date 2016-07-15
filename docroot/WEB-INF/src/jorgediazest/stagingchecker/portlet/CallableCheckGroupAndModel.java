@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.shard.ShardUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.model.Group;
+import com.liferay.portal.model.ResourcePermission;
 import com.liferay.portal.security.auth.CompanyThreadLocal;
 import com.liferay.portal.service.GroupLocalServiceUtil;
 import com.liferay.portlet.asset.model.AssetCategory;
@@ -103,6 +104,10 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 		relatedAttributesToCheck.add(
 			AssetTag.class.getName() + ":" +
 			"AssetEntries_AssetTags.tagId=tagId: =tagId,AssetTag.name=name");
+		relatedAttributesToCheck.add(
+			ResourcePermission.class.getName() + ":" + attributeClassPK +
+			"=primKey:[ =primKey,roleId,ownerId,actionIds]:companyId=" +
+			companyId + ",name=" + model.getClassName());
 
 		return relatedAttributesToCheck;
 	}
