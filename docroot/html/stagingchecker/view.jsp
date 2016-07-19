@@ -130,18 +130,3 @@
 		}
 	}
 %>
-
-<aui:script>
-
-	function <portlet:namespace />toogleFilterGroupId(event) {
-		var filterGroupId = document.getElementById("filterGroupIdSpan");
-
-		if (event.checked) {
-			filterGroupId.className = '';
-		}
-		else {
-			filterGroupId.className = 'hide';
-		}
-	}
-
-</aui:script>
