@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.shard.ShardUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.model.Group;
+import com.liferay.portal.model.ResourceBlockPermission;
 import com.liferay.portal.model.ResourcePermission;
 import com.liferay.portal.security.auth.CompanyThreadLocal;
 import com.liferay.portal.service.GroupLocalServiceUtil;
@@ -108,6 +109,9 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			ResourcePermission.class.getName() + ":" + attributeClassPK +
 			"=primKey:[ =primKey,roleId,ownerId,actionIds]:companyId=" +
 			companyId + ",name=" + model.getClassName());
+		relatedAttributesToCheck.add(
+			ResourceBlockPermission.class.getName() + ":resourceBlockId:" +
+			"[resourceBlockId,roleId,actionIds]: ");
 
 		return relatedAttributesToCheck;
 	}
