@@ -464,6 +464,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		StagingCheckerPortlet.class);
 
 	private static String[] ignoreClassNames = new String[] {
+		"com.liferay.portal.repository.liferayrepository.model.LiferayFileEntry",
 		"com.liferay.portal.kernel.repository.model.FileEntry",
 		"com.liferay.portal.kernel.repository.model.Folder",
 		"com.liferay.portal.model.UserPersonalSite"};
