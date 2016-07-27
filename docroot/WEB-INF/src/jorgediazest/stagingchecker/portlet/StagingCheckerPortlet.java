@@ -17,7 +17,6 @@ package jorgediazest.stagingchecker.portlet;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.shard.ShardUtil;
 import com.liferay.portal.kernel.exception.SystemException;
-import com.liferay.portal.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -45,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -58,16 +56,18 @@ import javax.portlet.RenderResponse;
 
 import jorgediazest.stagingchecker.ExecutionMode;
 import jorgediazest.stagingchecker.data.DataModelUUIDComparator;
-import jorgediazest.stagingchecker.model.JournalArticle;
+import jorgediazest.stagingchecker.model.StagingCheckerModelFactory;
+import jorgediazest.stagingchecker.model.StagingCheckerModelQueryFactory;
 
 import jorgediazest.util.data.Comparison;
 import jorgediazest.util.data.ComparisonUtil;
 import jorgediazest.util.data.DataComparator;
-import jorgediazest.util.model.DefaultModel;
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelFactory;
-import jorgediazest.util.model.ModelFactory.DataComparatorFactory;
 import jorgediazest.util.model.ModelUtil;
+import jorgediazest.util.modelquery.ModelQuery;
+import jorgediazest.util.modelquery.ModelQueryFactory;
+import jorgediazest.util.modelquery.ModelQueryFactory.DataComparatorFactory;
 
 /**
  * Portlet implementation class StagingCheckerPortlet
@@ -79,17 +79,12 @@ public class StagingCheckerPortlet extends MVCPortlet {
 	public static Map<Long, List<Comparison>> executeCheck(
 		Company company, List<Long> groupIds, List<String> classNames,
 		Set<ExecutionMode> executionMode, int threadsExecutor)
-	throws ExecutionException, InterruptedException {
+	throws Exception {
 
-		Map<String, Class<? extends Model>> modelClassMap =
-			new HashMap<String, Class<? extends Model>>();
+		ModelFactory modelFactory = new StagingCheckerModelFactory();
 
-		modelClassMap.put(
-			"com.liferay.portlet.journal.model.JournalArticle",
-			JournalArticle.class);
-
-		ModelFactory modelFactory = new ModelFactory(
-			DefaultModel.class, modelClassMap);
+		ModelQueryFactory queryFactory = new StagingCheckerModelQueryFactory(
+			modelFactory);
 
 		DataComparatorFactory dataComparatorFactory =
 			new DataComparatorFactory() {
@@ -116,11 +111,13 @@ public class StagingCheckerPortlet extends MVCPortlet {
 				"com.liferay.portal.model.ResourcePermission" });
 
 			@Override
-			public DataComparator getDataComparator(Model model) {
+			public DataComparator getDataComparator(ModelQuery query) {
+				Model model = query.getModel();
+
 				if ("com.liferay.portlet.asset.model.AssetCategory".equals(
 						model.getClassName()) ||
 					"com.liferay.portlet.asset.model.AssetVocabulary".equals(
-							model.getClassName()) ||
+						model.getClassName()) ||
 					"com.liferay.portlet.journal.model.JournalArticle".equals(
 						model.getClassName())) {
 
@@ -139,53 +136,23 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 		};
 
-		modelFactory.setDataComparatorFactory(dataComparatorFactory);
+		queryFactory.setDataComparatorFactory(dataComparatorFactory);
 
-		Map<String, Model> modelMap = modelFactory.getModelMap(classNames);
+		List<ModelQuery> modelQueryList = new ArrayList<ModelQuery>();
 
-		List<Model> modelList = new ArrayList<Model>();
+		for (String className : classNames) {
+			ModelQuery modelQuery = queryFactory.getModelQueryObject(className);
 
-		for (Model model : modelMap.values()) {
-			if (_log.isDebugEnabled()) {
-				_log.debug(
-					model + " - isStagedModel: " + model.isStagedModel() +
-						" - isGroupedModel: " + model.isGroupedModel() +
-							" - portlets: " + model.getPortlets());
+			if (modelQuery == null) {
+				continue;
 			}
+
+			Model model = modelQuery.getModel();
 
 			if (model.isStagedModel() && model.isGroupedModel() &&
 				(model.getPortlet() != null)) {
 
-				if (model.hasAttribute("classNameId")) {
-					model.addFilter(
-						model.generateCriterionFilter("classNameId=0"));
-				}
-
-				StagedModelDataHandler<?> stagedModelDataHandler =
-					model.getStagedModelDataHandler();
-
-				if ((stagedModelDataHandler != null) &&
-					model.isWorkflowEnabled()) {
-
-					model.addFilter(
-						model.getProperty("status").in(
-							stagedModelDataHandler.getExportableStatuses()));
-				}
-
-				if (model.getClassName().startsWith(
-						"com.liferay.portlet.documentlibrary.model.") &&
-					model.hasAttribute("repositoryId")) {
-
-					model.addFilter(
-						model.generateSingleCriterion("groupId=repositoryId"));
-				}
-				else if (model.getClassName().startsWith(
-							"com.liferay.portlet.dynamicdatamapping.model.")) {
-
-					model.setFilter(null);
-				}
-
-				modelList.add(model);
+				modelQueryList.add(modelQuery);
 			}
 		}
 
@@ -201,10 +168,10 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			List<Future<Comparison>> futureResultList =
 				new ArrayList<Future<Comparison>>();
 
-			for (Model model : modelList) {
+			for (ModelQuery modelQuery : modelQueryList) {
 				CallableCheckGroupAndModel c =
 					new CallableCheckGroupAndModel(
-						companyId, groupId, model, executionMode);
+						companyId, groupId, modelQuery, executionMode);
 
 				futureResultList.add(executor.submit(c));
 			}

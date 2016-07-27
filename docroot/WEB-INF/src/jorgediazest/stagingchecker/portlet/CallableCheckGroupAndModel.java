@@ -39,16 +39,19 @@ import jorgediazest.util.data.Comparison;
 import jorgediazest.util.data.ComparisonUtil;
 import jorgediazest.util.data.Data;
 import jorgediazest.util.model.Model;
+import jorgediazest.util.modelquery.ModelQuery;
 
 /**
  * @author Jorge Díaz
  */
 public class CallableCheckGroupAndModel implements Callable<Comparison> {
 
-	public static Set<String> calculateAttributesToCheck(Model model) {
+	public static Set<String> calculateAttributesToCheck(ModelQuery mq) {
+		Model model = mq.getModel();
+
 		Set<String> attributesToCheck = new LinkedHashSet<String>();
 
-		attributesToCheck.add(model.getPrimaryKeyAttribute());
+		attributesToCheck.add(mq.getModel().getPrimaryKeyAttribute());
 		attributesToCheck.add("companyId");
 		attributesToCheck.add("uuid");
 
@@ -57,7 +60,7 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 		}
 
 		attributesToCheck.addAll(
-			Arrays.asList(model.getDataComparator().getExactAttributes()));
+			Arrays.asList(mq.getDataComparator().getExactAttributes()));
 
 		if (AssetTag.class.getName().equals(model.getClassName())) {
 			attributesToCheck.add("name");
@@ -67,12 +70,12 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 	}
 
 	public CallableCheckGroupAndModel(
-		long companyId, long groupId, Model model,
+		long companyId, long groupId, ModelQuery mq,
 		Set<ExecutionMode> executionMode) {
 
 		this.companyId = companyId;
 		this.groupId = groupId;
-		this.model = model;
+		this.mq = mq;
 		this.executionMode = executionMode;
 	}
 
@@ -119,6 +122,8 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 	@Override
 	public Comparison call() throws Exception {
 
+		Model model = mq.getModel();
+
 		try {
 			CompanyThreadLocal.setCompanyId(companyId);
 
@@ -152,13 +157,13 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 				companyId, stagingGroupId);
 
 			String[] attributesToCheck = calculateAttributesToCheck(
-				model).toArray(new String[0]);
+				mq).toArray(new String[0]);
 
 			String[] relatedAttrToCheck = calculateRelatedAttributesToCheck(
 				model).toArray(new String[0]);
 
 			Set<Data> stagingData = new HashSet<Data>(
-				model.getData(
+				mq.getData(
 					attributesToCheck, relatedAttrToCheck,
 					stagingFilter).values());
 
@@ -166,7 +171,7 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 				companyId, groupId);
 
 			Set<Data> liveData = new HashSet<Data>(
-				model.getData(
+				mq.getData(
 					attributesToCheck, relatedAttrToCheck,
 					liveFilter).values());
 
@@ -197,6 +202,6 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 	private long companyId = -1;
 	private Set<ExecutionMode> executionMode = null;
 	private long groupId = -1;
-	private Model model = null;
+	private ModelQuery mq = null;
 
 }
