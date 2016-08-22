@@ -31,6 +31,10 @@ public class StagingCheckerModelFactory extends ModelFactory {
 	protected Model getModelObject(Service service) {
 		Model model = super.getModelObject(service);
 
+		if (model == null) {
+			return null;
+		}
+
 		if (_log.isDebugEnabled()) {
 			_log.debug(
 				model + " - isStagedModel: " + model.isStagedModel() +
