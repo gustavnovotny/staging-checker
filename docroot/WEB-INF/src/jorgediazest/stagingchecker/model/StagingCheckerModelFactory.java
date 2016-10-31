@@ -62,14 +62,14 @@ public class StagingCheckerModelFactory extends ModelFactory {
 		}
 
 		if (model.getClassName().startsWith(
-				"com.liferay.portlet.documentlibrary.model.") &&
+				"com.liferay.document.library.kernel.model.") &&
 			model.hasAttribute("repositoryId")) {
 
 			model.addFilter(
 				model.generateSingleCriterion("groupId=repositoryId"));
 		}
 		else if (model.getClassName().startsWith(
-					"com.liferay.portlet.dynamicdatamapping.model.")) {
+					"com.liferay.document.library.kernel.model.")) {
 
 			model.setFilter(null);
 		}

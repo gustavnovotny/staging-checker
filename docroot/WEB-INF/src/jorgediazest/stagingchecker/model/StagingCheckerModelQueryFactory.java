@@ -37,7 +37,7 @@ public class StagingCheckerModelQueryFactory extends ModelQueryFactory {
 		public Class<? extends ModelQuery> getModelQueryClass(
 			String className) {
 
-			if ("com.liferay.portlet.journal.model.JournalArticle".equals(
+			if ("com.liferay.journal.model.JournalArticle".equals(
 					className)) {
 
 				return JournalArticle.class;

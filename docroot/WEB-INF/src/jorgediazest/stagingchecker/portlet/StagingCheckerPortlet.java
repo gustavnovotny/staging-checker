@@ -18,8 +18,8 @@ import com.liferay.portal.kernel.dao.orm.Conjunction;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.OrderFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
-import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;import com.liferay.portal.kernel.exception.SystemException;
-import com.liferay.exportimport.kernel.lar.StagedModelDataHandler;
+import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
+import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.repository.model.FileEntry;
@@ -31,12 +31,15 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.Repository;
+import com.liferay.portal.kernel.model.ResourcePermission;
+import com.liferay.portal.kernel.model.UserPersonalSite;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ClassNameLocalServiceUtil;
-import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
+import com.liferay.portal.kernel.repository.model.Folder;
 import com.liferay.util.portlet.PortletProps;
 
 import java.io.ByteArrayInputStream;
@@ -145,21 +148,21 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 				"createDate", "status", "version", "name", "title",
 				"description", "size", "AssetTag.uuid", "AssetCategory.uuid",
-				"com.liferay.portal.model.ResourcePermission" });
+				ResourcePermission.class.getName() });
 
 			protected DataComparator noCreateDateComparator =
 				new DataModelUUIDComparator(new String[] {
 
 				"status", "version", "name", "title", "description", "size",
 				"AssetTag.uuid", "AssetCategory.uuid",
-				"com.liferay.portal.model.ResourcePermission" });
+				ResourcePermission.class.getName() });
 
 			protected DataComparator noNameComparator =
 				new DataModelUUIDComparator(new String[] {
 
 				"createDate", "status", "version", "title", "description",
 				"size", "AssetTag.uuid", "AssetCategory.uuid",
-				"com.liferay.portal.model.ResourcePermission" });
+				ResourcePermission.class.getName() });
 
 			@Override
 			public DataComparator getDataComparator(ModelQuery query) {
@@ -691,8 +694,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 	private static String[] ignoreClassNames = new String[] {
 		"com.liferay.portal.repository.liferayrepository.model.LiferayFileEntry",
-		"com.liferay.portal.kernel.repository.model.FileEntry",
-		"com.liferay.portal.kernel.repository.model.Folder",
-		"com.liferay.portal.model.UserPersonalSite"};
+		UserPersonalSite.class.getName(), FileEntry.class.getName(),
+		Folder.class.getName()};
 
 }
