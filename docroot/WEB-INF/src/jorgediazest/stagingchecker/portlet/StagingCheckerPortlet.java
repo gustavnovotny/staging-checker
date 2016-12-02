@@ -21,6 +21,7 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
+import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.Company;
 import com.liferay.portal.model.Group;
@@ -241,6 +242,14 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		RenderRequest renderRequest, RenderResponse renderResponse)
 			throws IOException, PortletException {
 
+		try {
+			List<Model> modelList = this.getModelList();
+			renderRequest.setAttribute("modelList", modelList);
+		}
+		catch (SystemException se) {
+			throw new PortletException(se);
+		}
+
 		int numberOfThreads = getNumberOfThreads(renderRequest);
 		renderRequest.setAttribute("numberOfThreads", numberOfThreads);
 
@@ -254,13 +263,13 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 		EnumSet<ExecutionMode> executionMode = getExecutionMode(request);
 
-		String[] filterClassNameArr = null;
-		String filterClassName = ParamUtil.getString(
-			request, "filterClassName");
+		String[] filterClassNameArr = ParamUtil.getParameterValues(
+			request,"filterClassName");
 
-		if (Validator.isNotNull(filterClassName)) {
-			filterClassNameArr = filterClassName.split(",");
-		}
+		response.setRenderParameter("filterClassName", new String[0]);
+
+		request.setAttribute(
+			"filterClassNameSelected", SetUtil.fromArray(filterClassNameArr));
 
 		String[] filterGroupIdArr = null;
 		String filterGroupId = ParamUtil.getString(request, "filterGroupId");
@@ -337,6 +346,13 @@ public class StagingCheckerPortlet extends MVCPortlet {
 	public List<String> getClassNames(String[] filterClassNameArr)
 		throws SystemException {
 
+		if ((filterClassNameArr == null)||(filterClassNameArr.length == 0)||
+			((filterClassNameArr.length == 1) &&
+			 Validator.isNull(filterClassNameArr[0]))) {
+
+			filterClassNameArr = null;
+		}
+
 		List<String> allClassName =
 			ModelUtil.getClassNameValues(
 				ClassNameLocalServiceUtil.getClassNames(
@@ -355,7 +371,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			}
 
 			for (String filterClassName : filterClassNameArr) {
-				if (className.contains(filterClassName)) {
+				if (className.equals(filterClassName)) {
 					classNames.add(className);
 					break;
 				}
@@ -395,6 +411,50 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		}
 
 		return groupIds;
+	}
+
+	public List<Model> getModelList() throws SystemException {
+		return getModelList(null);
+	}
+
+	public List<Model> getModelList(String[] filterClassNameArr)
+		throws SystemException {
+
+		List<String> classNames = getClassNames(filterClassNameArr);
+
+		ModelFactory modelFactory = new StagingCheckerModelFactory();
+
+		List<Model> modelList = new ArrayList<Model>();
+
+		for (String className : classNames) {
+			Model model = modelFactory.getModelObject(className);
+
+			if ((model == null) || !model.isStagedModel() ||
+				!model.isGroupedModel() || (model.getPortlet() == null)) {
+
+				continue;
+			}
+
+			modelList.add(model);
+		}
+
+		return modelList;
+	}
+
+	public List<ModelQuery> getModelQueryList(
+		ModelQueryFactory mqFactory, List<String> classNames) {
+
+		List<ModelQuery> mqList = new ArrayList<ModelQuery>();
+
+		for (String className : classNames) {
+			ModelQuery mq = mqFactory.getModelQueryObject(className);
+
+			if (mq != null) {
+				mqList.add(mq);
+			}
+		}
+
+		return mqList;
 	}
 
 	public int getNumberOfThreads(ActionRequest actionRequest) {
