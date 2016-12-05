@@ -14,7 +14,10 @@
 
 package jorgediazest.stagingchecker.portlet;
 
+import com.liferay.portal.kernel.dao.orm.Conjunction;
+import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
+import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.dao.shard.ShardUtil;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
@@ -243,6 +246,19 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			throws IOException, PortletException {
 
 		try {
+			List<Long> siteGroupIds = this.getSiteGroupIds();
+			renderRequest.setAttribute("groupIdList", siteGroupIds);
+
+			List<String> groupDescriptionList = getSiteGroupDescriptions(
+				siteGroupIds);
+			renderRequest.setAttribute(
+				"groupDescriptionList", groupDescriptionList);
+		}
+		catch (SystemException se) {
+			throw new PortletException(se);
+		}
+
+		try {
 			List<Model> modelList = this.getModelList();
 			renderRequest.setAttribute("modelList", modelList);
 		}
@@ -271,12 +287,13 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		request.setAttribute(
 			"filterClassNameSelected", SetUtil.fromArray(filterClassNameArr));
 
-		String[] filterGroupIdArr = null;
-		String filterGroupId = ParamUtil.getString(request, "filterGroupId");
+		String[] filterGroupIdArr = ParamUtil.getParameterValues(
+			request,"filterGroupId");
 
-		if (Validator.isNotNull(filterGroupId)) {
-			filterGroupIdArr = filterGroupId.split(",");
-		}
+		response.setRenderParameter("filterGroupId", new String[0]);
+
+		request.setAttribute(
+			"filterGroupIdSelected", SetUtil.fromArray(filterGroupIdArr));
 
 		List<Company> companies = CompanyLocalServiceUtil.getCompanies();
 
@@ -384,6 +401,12 @@ public class StagingCheckerPortlet extends MVCPortlet {
 	public List<Long> getGroupIds(Company company, String[] filterGroupIdArr)
 		throws SystemException {
 
+		if ((filterGroupIdArr != null) && (filterGroupIdArr.length == 1) &&
+			filterGroupIdArr[0].equals("-1000")) {
+
+			filterGroupIdArr = null;
+		}
+
 		List<Group> groups =
 			GroupLocalServiceUtil.getCompanyGroups(
 				company.getCompanyId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS);
@@ -471,6 +494,61 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		int num = ParamUtil.getInteger(renderRequest, "numberOfThreads", def);
 
 		return (num == 0) ? def : num;
+	}
+
+	public List<String> getSiteGroupDescriptions(List<Long> siteGroupIds)
+		throws SystemException {
+
+		List<String> groupDescriptionList = new ArrayList<String>();
+
+		for (Long siteGroupId : siteGroupIds) {
+			Group group = GroupLocalServiceUtil.fetchGroup(siteGroupId);
+			String groupDescription = group.getName();
+			groupDescription = groupDescription.replace(
+				"LFR_ORGANIZATION", "(Org)");
+
+			if (group.isCompany()) {
+				if (!group.isStagingGroup()) {
+					groupDescription = "Global";
+				}
+
+				groupDescription += " - " + group.getCompanyId();
+			}
+
+			groupDescriptionList.add(groupDescription);
+		}
+
+		return groupDescriptionList;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Long> getSiteGroupIds() {
+
+		ModelFactory modelFactory = new ModelFactory();
+
+		Model model = modelFactory.getModelObject(Group.class);
+
+		DynamicQuery groupDynamicQuery = model.getService().newDynamicQuery();
+
+		Conjunction stagingSites = RestrictionsFactoryUtil.conjunction();
+		stagingSites.add(model.getProperty("site").eq(false));
+		stagingSites.add(model.getProperty("liveGroupId").ne(0L));
+
+		groupDynamicQuery.add(stagingSites);
+		groupDynamicQuery.setProjection(
+			model.getPropertyProjection("liveGroupId"));
+
+		try {
+			return (List<Long>)model.getService().executeDynamicQuery(
+				groupDynamicQuery);
+		}
+		catch (Exception e) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(e, e);
+			}
+
+			return new ArrayList<Long>();
+		}
 	}
 
 	public boolean ignoreClassName(String className) {
