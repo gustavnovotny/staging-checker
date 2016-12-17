@@ -16,6 +16,7 @@ package jorgediazest.stagingchecker.portlet;
 
 import com.liferay.portal.kernel.dao.orm.Conjunction;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
+import com.liferay.portal.kernel.dao.orm.OrderFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.dao.shard.ShardUtil;
@@ -43,11 +44,11 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -166,7 +167,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			threadsExecutor);
 
 		Map<Long, List<Future<Comparison>>> futureResultDataMap =
-			new LinkedHashMap<Long, List<Future<Comparison>>>();
+			new TreeMap<Long, List<Future<Comparison>>>();
 
 		for (long groupId : groupIds) {
 			List<Future<Comparison>> futureResultList =
@@ -184,7 +185,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		}
 
 		Map<Long, List<Comparison>> resultDataMap =
-			new LinkedHashMap<Long, List<Comparison>>();
+			new TreeMap<Long, List<Comparison>>();
 
 		for (
 			Entry<Long, List<Future<Comparison>>> entry :
@@ -537,6 +538,8 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		groupDynamicQuery.add(stagingSites);
 		groupDynamicQuery.setProjection(
 			model.getPropertyProjection("liveGroupId"));
+
+		groupDynamicQuery.addOrder(OrderFactoryUtil.asc("name"));
 
 		try {
 			return (List<Long>)model.getService().executeDynamicQuery(
