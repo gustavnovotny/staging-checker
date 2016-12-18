@@ -31,7 +31,6 @@ import com.liferay.portal.model.Company;
 import com.liferay.portal.model.Group;
 import com.liferay.portal.security.auth.CompanyThreadLocal;
 import com.liferay.portal.service.ClassNameLocalServiceUtil;
-import com.liferay.portal.service.CompanyLocalServiceUtil;
 import com.liferay.portal.service.GroupLocalServiceUtil;
 import com.liferay.portal.util.PortalUtil;
 import com.liferay.util.bridges.mvc.MVCPortlet;
@@ -43,7 +42,7 @@ import java.io.StringWriter;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -73,6 +72,7 @@ import jorgediazest.util.model.ModelUtil;
 import jorgediazest.util.modelquery.ModelQuery;
 import jorgediazest.util.modelquery.ModelQueryFactory;
 import jorgediazest.util.modelquery.ModelQueryFactory.DataComparatorFactory;
+import jorgediazest.util.service.Service;
 
 /**
  * Portlet implementation class StagingCheckerPortlet
@@ -296,16 +296,16 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		request.setAttribute(
 			"filterGroupIdSelected", SetUtil.fromArray(filterGroupIdArr));
 
-		List<Company> companies = CompanyLocalServiceUtil.getCompanies();
-
 		Map<Company, Map<Long, List<Comparison>>> companyResultDataMap =
-			new HashMap<Company, Map<Long, List<Comparison>>>();
+			new LinkedHashMap<Company, Map<Long, List<Comparison>>>();
 
-		Map<Company, Long> companyProcessTime = new HashMap<Company, Long>();
+		Map<Company, Long> companyProcessTime =
+			new LinkedHashMap<Company, Long>();
 
-		Map<Company, String> companyError = new HashMap<Company, String>();
+		Map<Company, String> companyError =
+			new LinkedHashMap<Company, String>();
 
-		for (Company company : companies) {
+		for (Company company : getCompanyList()) {
 			try {
 				CompanyThreadLocal.setCompanyId(company.getCompanyId());
 
@@ -397,6 +397,22 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		}
 
 		return classNames;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Company> getCompanyList() throws Exception {
+		ModelFactory modelFactory = new ModelFactory();
+
+		Model companyModel = modelFactory.getModelObject(Company.class);
+
+		Service companyService = companyModel.getService();
+
+		DynamicQuery companyDynamicQuery = companyService.newDynamicQuery();
+
+		companyDynamicQuery.addOrder(OrderFactoryUtil.asc("companyId"));
+
+		return (List<Company>)
+			companyService.executeDynamicQuery(companyDynamicQuery);
 	}
 
 	public List<Long> getGroupIds(Company company, String[] filterGroupIdArr)
