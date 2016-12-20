@@ -52,7 +52,6 @@
 
 <%@ page import="jorgediazest.util.data.Comparison" %>
 <%@ page import="jorgediazest.util.model.Model" %>
-<%@ page import="jorgediazest.util.output.OutputUtils" %>
 
 <portlet:defineObjects />
 
@@ -88,10 +87,6 @@
 <aui:form action="<%= executeCheckURL %>" method="POST" name="fm">
 	<aui:fieldset>
 		<aui:column>
-			<aui:select name="outputFormat">
-				<aui:option selected="true" value="Table"><liferay-ui:message key="output-format-table" /></aui:option>
-				<aui:option value="CSV"><liferay-ui:message key="output-format-csv" /></aui:option>
-			</aui:select>
 			<aui:input helpMessage="output-both-exact-help" name="outputBothExact" type="checkbox" value="false" />
 			<aui:input helpMessage="output-both-not-exact-help" name="outputBothNotExact" type="checkbox" value="true" />
 			<aui:input helpMessage="output-staging-help" name="outputStaging" type="checkbox" value="true" />
@@ -138,45 +133,81 @@
 			</aui:select>
 		</aui:column>
 		<aui:column>
-			<aui:input helpMessage="number-of-threads-help" name="numberOfThreads" type="text" value='<%= request.getAttribute("numberOfThreads") %>' />
 			<aui:input name="dumpAllObjectsToLog" type="checkbox" value="false" />
+			<aui:input helpMessage="number-of-threads-help" name="numberOfThreads" type="text" value='<%= request.getAttribute("numberOfThreads") %>' />
 		</aui:column>
 	</aui:fieldset>
 
 	<aui:button-row>
 		<aui:button type="submit" value="check-staging" />
 
+<%
+	String exportCsvResourceURL = (String)request.getAttribute("exportCsvResourceURL");
+	if (exportCsvResourceURL != null) {
+		exportCsvResourceURL = "window.open('" + exportCsvResourceURL + "');";
+%>
+
+		<aui:button onClick="<%= exportCsvResourceURL %>" type="button" value="export-to-csv" />
+
+<%
+	}
+%>
+
 		<aui:button onClick="<%= viewURL %>" type="cancel" value="clean" />
+
 	</aui:button-row>
 </aui:form>
 
 <%
 	if ((companyProcessTime != null) && (companyError != null)) {
-
-		String outputFormat = request.getParameter("outputFormat");
-
-		if (Validator.isNotNull(outputFormat)) {
-			if (outputFormat.equals("CSV")) {
 %>
 
-	<%@ include file="/html/stagingchecker/output/result_csv.jspf" %>
+<h2><b><%= request.getAttribute("title") %></b></h2>
 
 <%
+		for (Entry<Company, Long> companyEntry : companyProcessTime.entrySet()) {
+			Long processTime = companyEntry.getValue();
+			%>
+
+			<h3>Company: <%= companyEntry.getKey().getCompanyId() %> - <%= companyEntry.getKey().getWebId() %></h3>
+
+			<%
+			if (companyResultDataMap != null) {
+				Map<Long, List<Comparison>> resultDataMap =
+					companyResultDataMap.get(companyEntry.getKey());
+
+				PortletURL serverURL = renderResponse.createRenderURL();
+
+				SearchContainer searchContainer = StagingCheckerOutput.generateSearchContainer(portletConfig, renderRequest, true, resultDataMap, serverURL);
+
+				if (searchContainer.getTotal() > 0) {
+				%>
+
+				<liferay-ui:search-iterator paginate="false" searchContainer="<%= searchContainer %>" />
+
+				<%
+				}
+				else {
+				%>
+
+				<b>No results found:</b> your system is ok or perhaps you have to change some filters<br /><br />
+
+				<%
+				}
 			}
-			else if (outputFormat.equals("Table")) {
+			String errorMessage = companyError.get(companyEntry.getKey());
 %>
 
-	<%@ include file="/html/stagingchecker/output/result_table.jspf" %>
+<c:if test="<%= Validator.isNotNull(errorMessage) %>">
+	<aui:input cssClass="lfr-textarea-container" name="output" resizable="<%= true %>" type="textarea" value="<%= errorMessage %>" />
+</c:if>
+
+<i>Executed <b><%= request.getAttribute("title") %></b> for company <%= companyEntry.getKey().getCompanyId() %> in <%=processTime %> ms</i><br />
 
 <%
-			}
-			else {
-%>
-
-	<%@ include file="/html/stagingchecker/output/result_error.jspf" %>
-
-<%
-			}
 		}
+%>
+
+<%
 	}
 %>
