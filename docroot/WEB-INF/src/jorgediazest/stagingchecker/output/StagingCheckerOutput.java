@@ -29,6 +29,7 @@ import com.liferay.portal.model.Group;
 import com.liferay.portal.service.GroupLocalServiceUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -160,7 +161,7 @@ public class StagingCheckerOutput {
 						String lineError = generateCSVRow(
 							portletConfig, comp, companyOutput, groupIdOutput,
 							groupNameOutput, "error", locale, comp.getError(),
-							"");
+							-1);
 
 						if (lineError != null) {
 							numberOfRows++;
@@ -282,7 +283,7 @@ public class StagingCheckerOutput {
 			for (Comparison comp : entry.getValue()) {
 				ResultRow rowError = generateSearchContainerRow(
 					portletConfig, comp, groupIdOutput, groupNameOutput,
-					"error", locale, numberOfRows, comp.getError(), "");
+					"error", locale, numberOfRows, comp.getError());
 
 				if (rowError != null) {
 					numberOfRows++;
@@ -307,7 +308,15 @@ public class StagingCheckerOutput {
 		return searchContainer;
 	}
 
-	static Log _log = LogFactoryUtil.getLog(StagingCheckerOutput.class);
+	public static String stringArrayToString(String[] stringArray) {
+		String string = Arrays.toString(stringArray);
+
+		if (string.length() <= 1) {
+			return StringPool.BLANK;
+		}
+
+		return string.substring(1, string.length()-1);
+	}
 
 	protected static String generateCSVRow(
 		PortletConfig portletConfig, Comparison comp, String companyOutput,
@@ -320,18 +329,19 @@ public class StagingCheckerOutput {
 			return null;
 		}
 
-		String output = DataUtil.getListAttrAsString(data, "uuid");
-		String outputSize = "" + data.size();
+		String[] output = DataUtil.getListAttr(data, "uuid");
+
+		String outputString = stringArrayToString(output);
 
 		return generateCSVRow(
 			portletConfig, comp, companyOutput, groupIdOutput, groupNameOutput,
-			type, locale, output, outputSize);
+			type, locale, outputString, data.size());
 	}
 
 	protected static String generateCSVRow(
 		PortletConfig portletConfig, Comparison comp, String companyOutput,
 		String groupIdOutput, String groupNameOutput, String type,
-		Locale locale, String output, String outputSize) {
+		Locale locale, String output, int outputSize) {
 
 		if (Validator.isNull(output)) {
 			return null;
@@ -353,7 +363,14 @@ public class StagingCheckerOutput {
 		line.add(modelOutput);
 		line.add(modelDisplayNameOutput);
 		line.add(LanguageUtil.get(portletConfig, locale, "output." + type));
-		line.add(outputSize);
+
+		if (outputSize < 0) {
+			line.add(StringPool.BLANK);
+		}
+		else {
+			line.add(StringPool.BLANK + outputSize);
+		}
+
 		line.add(output);
 		return OutputUtils.getCSVRow(line);
 	}
@@ -368,20 +385,41 @@ public class StagingCheckerOutput {
 			return null;
 		}
 
-		String output = DataUtil.getListAttrAsString(data, "uuid");
-		String outputSize = ""+data.size();
+		int maxSize = 50;
+
+		String[] output = DataUtil.getListAttr(data, "uuid", maxSize);
+
+		String outputString = stringArrayToString(output);
+
+		int overflow = data.size() - maxSize;
+
+		if (overflow > 0) {
+			outputString += "... (" + overflow + " more)";
+		}
+
+		outputString = HtmlUtil.escape(outputString);
 
 		return generateSearchContainerRow(
 			portletConfig, comp, groupIdOutput, groupNameOutput, type, locale,
-			numberOfRows, output, outputSize);
+			numberOfRows, outputString, data.size());
 	}
 
 	protected static ResultRow generateSearchContainerRow(
 		PortletConfig portletConfig, Comparison comp, String groupIdOutput,
 		String groupNameOutput, String type, Locale locale, int numberOfRows,
-		String output, String outputSize) {
+		String errorOutput) {
 
-		if (Validator.isNull(output)) {
+		return generateSearchContainerRow(
+			portletConfig, comp, groupIdOutput, groupNameOutput, type, locale,
+			numberOfRows, HtmlUtil.escape(errorOutput), -1);
+	}
+
+	protected static ResultRow generateSearchContainerRow(
+		PortletConfig portletConfig, Comparison comp, String groupIdOutput,
+		String groupNameOutput, String type, Locale locale, int numberOfRows,
+		String htmlOutput, int outputSize) {
+
+		if (Validator.isNull(htmlOutput)) {
 			return null;
 		}
 
@@ -403,9 +441,18 @@ public class StagingCheckerOutput {
 				LanguageUtil.get(
 					portletConfig, locale, "output." + type)).replace(
 						" ", "&nbsp;"));
-		row.addText(HtmlUtil.escape(outputSize));
-		row.addText(HtmlUtil.escape(output));
+
+		if (outputSize < 0) {
+			row.addText(StringPool.BLANK);
+		}
+		else {
+			row.addText(StringPool.BLANK + outputSize);
+		}
+
+		row.addText(htmlOutput);
 		return row;
 	}
+
+	private static Log _log = LogFactoryUtil.getLog(StagingCheckerOutput.class);
 
 }
