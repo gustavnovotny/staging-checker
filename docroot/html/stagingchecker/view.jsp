@@ -167,8 +167,7 @@
 <%
 	}
 %>
-
-		<aui:button onClick="<%= viewURL %>" type="cancel" value="clean" />
+		<aui:button onClick="<%= viewURL %>" type="button" value="clean" />
 
 	</aui:button-row>
 </aui:form>
