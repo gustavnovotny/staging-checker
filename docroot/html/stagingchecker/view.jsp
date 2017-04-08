@@ -74,10 +74,7 @@
 	}
 </script>
 
-<liferay-ui:header
-	backURL="<%= viewURL %>"
-	title="staging-checker"
-/>
+<div class="container-fluid-1280"><div class="card-horizontal main-content-card"><div class="panel-body">
 
 <%
 	Log _log = StagingCheckerPortlet.getLogger();
@@ -219,9 +216,12 @@
 <i>Executed <b><%= request.getAttribute("title") %></b> for company <%= companyEntry.getKey().getCompanyId() %> in <%=processTime %> ms</i><br />
 
 <%
-		}
+	}
 %>
 
 <%
 	}
 %>
+
+</div></div></div>
+
