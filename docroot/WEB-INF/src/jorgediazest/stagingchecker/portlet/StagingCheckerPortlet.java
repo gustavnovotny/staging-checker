@@ -75,7 +75,6 @@ import jorgediazest.stagingchecker.model.StagingCheckerModelQueryFactory;
 import jorgediazest.stagingchecker.output.StagingCheckerOutput;
 
 import jorgediazest.util.data.Comparison;
-import jorgediazest.util.data.ComparisonUtil;
 import jorgediazest.util.data.DataComparator;
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelFactory;
@@ -92,6 +91,42 @@ import jorgediazest.util.service.Service;
  * @author Jorge Díaz
  */
 public class StagingCheckerPortlet extends MVCPortlet {
+
+	public static void dumpToLog(
+			boolean groupBySite,
+			Map<Long, List<Comparison>> comparisonDataMap)
+		throws SystemException {
+
+		if (!_log.isInfoEnabled()) {
+			return;
+		}
+
+		for (
+			Entry<Long, List<Comparison>> entry :
+				comparisonDataMap.entrySet()) {
+
+			String groupTitle = null;
+			Group group = GroupLocalServiceUtil.fetchGroup(entry.getKey());
+
+			if ((group == null) && groupBySite) {
+				groupTitle = "N/A";
+			}
+			else if (group != null) {
+				groupTitle = group.getGroupId() + " - " + group.getName();
+			}
+
+			if (groupTitle != null) {
+				_log.info("");
+				_log.info("---------------");
+				_log.info("GROUP: " + groupTitle);
+				_log.info("---------------");
+			}
+
+			for (Comparison comparison : entry.getValue()) {
+				comparison.dumpToLog();
+			}
+		}
+	}
 
 	public static Map<Long, List<Comparison>> executeCheck(
 		Company company, List<Long> groupIds, List<String> classNames,
@@ -388,7 +423,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 					_log.info("COMPANY: " + company);
 
-					ComparisonUtil.dumpToLog(true, resultDataMap);
+					dumpToLog(true, resultDataMap);
 				}
 
 				companyResultDataMap.put(company, resultDataMap);
