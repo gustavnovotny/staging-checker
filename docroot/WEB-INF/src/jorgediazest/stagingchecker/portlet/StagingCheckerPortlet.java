@@ -321,7 +321,8 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			long userId = PortalUtil.getUserId(renderRequest);
 
 			String fileName =
-				"output_" + userId + "_" + System.currentTimeMillis() + ".csv";
+				"staging-checker_output_" + userId + "_" +
+				System.currentTimeMillis() + ".csv";
 
 			exportCsvFileEntry = OutputUtils.addPortletFileEntry(
 				repository, inputStream, userId, fileName, "text/plain");
