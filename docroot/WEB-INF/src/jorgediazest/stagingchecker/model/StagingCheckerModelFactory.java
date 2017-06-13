@@ -20,6 +20,7 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelFactory;
+import jorgediazest.util.model.ModelWrapper;
 import jorgediazest.util.service.Service;
 
 /**
@@ -48,15 +49,18 @@ public class StagingCheckerModelFactory extends ModelFactory {
 			return model;
 		}
 
+		ModelWrapper modelWrapper = new ModelWrapper(model);
+
 		if (model.hasAttribute("classNameId")) {
-			model.addFilter(model.generateCriterionFilter("classNameId=0"));
+			modelWrapper.addFilter(
+				model.generateCriterionFilter("classNameId=0"));
 		}
 
 		StagedModelDataHandler<?> stagedModelDataHandler =
 			model.getStagedModelDataHandler();
 
 		if ((stagedModelDataHandler != null) && model.isWorkflowEnabled()) {
-			model.addFilter(
+			modelWrapper.addFilter(
 				model.getProperty("status").in(
 					stagedModelDataHandler.getExportableStatuses()));
 		}
@@ -65,16 +69,16 @@ public class StagingCheckerModelFactory extends ModelFactory {
 				"com.liferay.portlet.documentlibrary.model.") &&
 			model.hasAttribute("repositoryId")) {
 
-			model.addFilter(
+			modelWrapper.addFilter(
 				model.generateSingleCriterion("groupId=repositoryId"));
 		}
 		else if (model.getClassName().startsWith(
 					"com.liferay.portlet.dynamicdatamapping.model.")) {
 
-			model.setFilter(null);
+			modelWrapper.setFilter(null);
 		}
 
-		return model;
+		return modelWrapper;
 	}
 
 	private static Log _log = LogFactoryUtil.getLog(
