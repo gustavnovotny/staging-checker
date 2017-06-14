@@ -15,8 +15,9 @@
 package jorgediazest.stagingchecker.portlet;
 
 import com.liferay.portal.kernel.dao.orm.Conjunction;
-import com.liferay.portal.kernel.dao.orm.DynamicQuery;
+import com.liferay.portal.kernel.dao.orm.Order;
 import com.liferay.portal.kernel.dao.orm.OrderFactoryUtil;
+import com.liferay.portal.kernel.dao.orm.Projection;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.dao.shard.ShardUtil;
@@ -32,6 +33,7 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.Company;
 import com.liferay.portal.model.Group;
+import com.liferay.portal.model.Portlet;
 import com.liferay.portal.model.Repository;
 import com.liferay.portal.security.auth.CompanyThreadLocal;
 import com.liferay.portal.service.ClassNameLocalServiceUtil;
@@ -47,6 +49,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -83,7 +86,6 @@ import jorgediazest.util.modelquery.ModelQuery;
 import jorgediazest.util.modelquery.ModelQueryFactory;
 import jorgediazest.util.modelquery.ModelQueryFactory.DataComparatorFactory;
 import jorgediazest.util.output.OutputUtils;
-import jorgediazest.util.service.Service;
 
 /**
  * Portlet implementation class StagingCheckerPortlet
@@ -201,8 +203,13 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 			Model model = modelQuery.getModel();
 
+			StagingCheckerModelFactory mf =
+				(StagingCheckerModelFactory)model.getModelFactory();
+
+			Set<Portlet> portlets = mf.getPortlets(model.getClassName());
+
 			if (model.isStagedModel() && model.isGroupedModel() &&
-				(model.getPortlet() != null)) {
+				!portlets.isEmpty()) {
 
 				modelQueryList.add(modelQuery);
 			}
@@ -499,14 +506,9 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 		Model companyModel = modelFactory.getModelObject(Company.class);
 
-		Service companyService = companyModel.getService();
-
-		DynamicQuery companyDynamicQuery = companyService.newDynamicQuery();
-
-		companyDynamicQuery.addOrder(OrderFactoryUtil.asc("companyId"));
-
 		return (List<Company>)
-			companyService.executeDynamicQuery(companyDynamicQuery);
+			companyModel.executeDynamicQuery(
+				null, OrderFactoryUtil.asc("companyId"));
 	}
 
 	public List<Long> getGroupIds(Company company, String[] filterGroupIdArr)
@@ -563,13 +565,22 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		for (String className : classNames) {
 			Model model = modelFactory.getModelObject(className);
 
-			if ((model == null) || !model.isStagedModel() ||
-				!model.isGroupedModel() || (model.getPortlet() == null)) {
-
+			if (model == null) {
 				continue;
 			}
 
-			modelList.add(model);
+			if (!model.isStagedModel() || !model.isGroupedModel()) {
+				continue;
+			}
+
+			StagingCheckerModelFactory mf =
+				(StagingCheckerModelFactory)model.getModelFactory();
+
+			Set<Portlet> portlets = mf.getPortlets(model.getClassName());
+
+			if (!portlets.isEmpty()) {
+				modelList.add(model);
+			}
 		}
 
 		return modelList;
@@ -639,21 +650,18 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 		Model model = modelFactory.getModelObject(Group.class);
 
-		DynamicQuery groupDynamicQuery = model.getService().newDynamicQuery();
-
 		Conjunction stagingSites = RestrictionsFactoryUtil.conjunction();
 		stagingSites.add(model.getProperty("site").eq(false));
 		stagingSites.add(model.getProperty("liveGroupId").ne(0L));
 
-		groupDynamicQuery.add(stagingSites);
-		groupDynamicQuery.setProjection(
-			model.getPropertyProjection("liveGroupId"));
+		Projection projection = model.getPropertyProjection("liveGroupId");
 
-		groupDynamicQuery.addOrder(OrderFactoryUtil.asc("name"));
+		List<Order> orders = Collections.singletonList(
+			OrderFactoryUtil.asc("name"));
 
 		try {
-			return (List<Long>)model.getService().executeDynamicQuery(
-				groupDynamicQuery);
+			return (List<Long>)model.executeDynamicQuery(
+				stagingSites, projection, orders);
 		}
 		catch (Exception e) {
 			if (_log.isWarnEnabled()) {

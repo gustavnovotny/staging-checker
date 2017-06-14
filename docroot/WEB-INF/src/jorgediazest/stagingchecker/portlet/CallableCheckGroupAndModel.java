@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.dao.shard.ShardUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.model.Group;
+import com.liferay.portal.model.Portlet;
 import com.liferay.portal.model.ResourceBlockPermission;
 import com.liferay.portal.model.ResourcePermission;
 import com.liferay.portal.security.auth.CompanyThreadLocal;
@@ -34,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import jorgediazest.stagingchecker.ExecutionMode;
+import jorgediazest.stagingchecker.model.StagingCheckerModelFactory;
 
 import jorgediazest.util.data.Comparison;
 import jorgediazest.util.data.ComparisonUtil;
@@ -139,9 +141,14 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 				return null;
 			}
 
+			StagingCheckerModelFactory mf =
+				(StagingCheckerModelFactory)model.getModelFactory();
+
+			Portlet portlet = mf.getPortlet(model.getClassName());
+
 			Group group = GroupLocalServiceUtil.fetchGroup(groupId);
 
-			if (!group.isStagedPortlet(model.getPortletId())) {
+			if (!group.isStagedPortlet(portlet.getPortletId())) {
 				if (_log.isDebugEnabled()) {
 					_log.debug(
 						model.getName() + " is not staged for group " +
