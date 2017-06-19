@@ -135,10 +135,10 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		Set<ExecutionMode> executionMode, int threadsExecutor)
 	throws Exception {
 
-		ModelFactory modelFactory = new StagingCheckerModelFactory();
+		StagingCheckerModelFactory mf = new StagingCheckerModelFactory();
 
 		ModelQueryFactory queryFactory = new StagingCheckerModelQueryFactory(
-			modelFactory);
+			mf);
 
 		DataComparatorFactory dataComparatorFactory =
 			new DataComparatorFactory() {
@@ -195,21 +195,18 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		List<ModelQuery> modelQueryList = new ArrayList<ModelQuery>();
 
 		for (String className : classNames) {
-			ModelQuery modelQuery = queryFactory.getModelQueryObject(className);
+			Model model = mf.getModelObject(className);
 
-			if (modelQuery == null) {
+			if (model == null) {
 				continue;
 			}
-
-			Model model = modelQuery.getModel();
-
-			StagingCheckerModelFactory mf =
-				(StagingCheckerModelFactory)model.getModelFactory();
 
 			Set<Portlet> portlets = mf.getPortlets(model.getClassName());
 
 			if (model.isStagedModel() && model.isGroupedModel() &&
 				!portlets.isEmpty()) {
+
+				ModelQuery modelQuery = queryFactory.getModelQueryObject(model);
 
 				modelQueryList.add(modelQuery);
 			}

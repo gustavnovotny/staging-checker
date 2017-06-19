@@ -27,10 +27,13 @@ import com.liferay.portal.service.GroupLocalServiceUtil;
 import com.liferay.portlet.asset.model.AssetCategory;
 import com.liferay.portlet.asset.model.AssetEntry;
 import com.liferay.portlet.asset.model.AssetTag;
+import com.liferay.portlet.journal.model.JournalArticle;
+import com.liferay.portlet.journal.model.JournalArticleResource;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -118,6 +121,12 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			ResourceBlockPermission.class.getName() + ":resourceBlockId:" +
 			"[resourceBlockId,roleId,actionIds]: ");
 
+		if (JournalArticle.class.getName().equals(model.getClassName())) {
+			relatedAttributesToCheck.add(
+				JournalArticleResource.class.getName() + ":resourcePrimKey:" +
+				" =resourcePrimKey,resourceUuid=uuid");
+		}
+
 		return relatedAttributesToCheck;
 	}
 
@@ -169,18 +178,25 @@ public class CallableCheckGroupAndModel implements Callable<Comparison> {
 			String[] relatedAttrToCheck = calculateRelatedAttributesToCheck(
 				model).toArray(new String[0]);
 
-			Set<Data> stagingData = new HashSet<Data>(
-				mq.getData(
-					attributesToCheck, relatedAttrToCheck,
-					stagingFilter).values());
+			Map<Long, Data> stagingDataMap;
+
+			stagingDataMap = mq.getData(attributesToCheck, stagingFilter);
+
+			mq.addRelatedModelData(
+				stagingDataMap, relatedAttrToCheck, stagingFilter);
+
+			Set<Data> stagingData = new HashSet<Data>(stagingDataMap.values());
 
 			Criterion liveFilter = model.getCompanyGroupFilter(
 				companyId, groupId);
 
-			Set<Data> liveData = new HashSet<Data>(
-				mq.getData(
-					attributesToCheck, relatedAttrToCheck,
-					liveFilter).values());
+			Map<Long, Data> liveDataMap;
+
+			liveDataMap = mq.getData(attributesToCheck, liveFilter);
+
+			mq.addRelatedModelData(liveDataMap, relatedAttrToCheck, liveFilter);
+
+			Set<Data> liveData = new HashSet<Data>(liveDataMap.values());
 
 			boolean showBothExact = executionMode.contains(
 				ExecutionMode.SHOW_BOTH_EXACT);

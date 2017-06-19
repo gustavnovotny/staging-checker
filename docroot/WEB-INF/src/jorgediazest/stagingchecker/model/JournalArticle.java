@@ -15,7 +15,6 @@
 package jorgediazest.stagingchecker.model;
 
 import com.liferay.portal.kernel.dao.orm.Criterion;
-import com.liferay.portlet.journal.model.JournalArticleResource;
 
 import java.util.Map;
 
@@ -27,17 +26,12 @@ import jorgediazest.util.modelquery.ModelQueryImpl;
  */
 public class JournalArticle extends ModelQueryImpl {
 
-	public Map<Long, Data> getData(
-			String[] attributes, String mapKeyAttribute, Criterion filter)
+	public void addRelatedModelData(
+			Map<Long, Data> dataMap, String[] attributesRelated,
+			Criterion filter)
 		throws Exception {
 
-		Map<Long, Data> dataMap = super.getData(
-			attributes, mapKeyAttribute, filter);
-
-		addRelatedModelData(
-			dataMap, JournalArticleResource.class.getName(),
-			" =resourcePrimKey,resourceUuid=uuid".split(","),
-			"resourcePrimKey".split(","), false, false);
+		super.addRelatedModelData(dataMap, attributesRelated, filter);
 
 		for (Data data : dataMap.values()) {
 			String resourceUuid = (String) data.get("resourceUuid");
@@ -48,8 +42,6 @@ public class JournalArticle extends ModelQueryImpl {
 				data.set("uuid", resourceUuid + "_" + version.toString());
 			}
 		}
-
-		return dataMap;
 	}
 
 }
