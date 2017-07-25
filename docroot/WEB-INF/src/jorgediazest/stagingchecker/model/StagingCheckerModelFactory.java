@@ -15,6 +15,7 @@
 package jorgediazest.stagingchecker.model;
 
 import com.liferay.portal.kernel.bean.ClassLoaderBeanHandler;
+import com.liferay.portal.kernel.dao.orm.Criterion;
 import com.liferay.portal.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.lar.StagedModelDataHandlerRegistryUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -27,21 +28,103 @@ import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jorgediazest.stagingchecker.util.ConfigurationUtil;
+
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelFactory;
+import jorgediazest.util.model.ModelUtil;
 import jorgediazest.util.model.ModelWrapper;
-import jorgediazest.util.service.Service;
 
 /**
  * @author Jorge Díaz
  */
 public class StagingCheckerModelFactory extends ModelFactory {
 
+	long companyId;
+
 	public StagingCheckerModelFactory() {
+		this(0L);
+	}
+
+	public StagingCheckerModelFactory(long companyId) {
 		fillHandlerPortletIdMap();
+
+		this.companyId = companyId;
+	}
+
+	@Override
+	public Model getModelObject(String className) {
+		Model model = super.getModelObject(className);
+
+		if (model == null) {
+			return null;
+		}
+
+		if (model instanceof ModelWrapper) {
+			return model;
+		}
+
+		Set<Portlet> portlets = getPortlets(model.getClassName());
+
+		if (_log.isDebugEnabled()) {
+			_log.debug(
+				model + " - isStagedModel: " + model.isStagedModel() +
+					" - isGroupedModel: " + model.isGroupedModel() +
+						" - portlets: " + portlets);
+		}
+
+		Criterion stagedModelCriterion = null;
+
+		if (model.isStagedModel() && model.isGroupedModel() &&
+			model.isWorkflowEnabled() && !portlets.isEmpty()) {
+
+			StagedModelDataHandler<?> stagedModelDataHandler =
+				StagedModelDataHandlerRegistryUtil.getStagedModelDataHandler(
+					className);
+
+			stagedModelCriterion = model.getProperty("status").in(
+				stagedModelDataHandler.getExportableStatuses());
+		}
+
+		List<String> keyAttributes = ConfigurationUtil.getKeyAttributes(model);
+
+		String sqlFilter = ConfigurationUtil.getStringFilter(model);
+
+		Criterion sqlCriterion = ModelUtil.generateSQLCriterion(sqlFilter);
+
+		Criterion companyCriterion = null;
+
+		if (companyId > 0) {
+			companyCriterion = model.getAttributeCriterion(
+				"companyId", companyId);
+		}
+
+		Criterion criterion = ModelUtil.generateConjunctionCriterion(
+			companyCriterion, stagedModelCriterion, sqlCriterion);
+
+		if ((criterion == null) && ((keyAttributes == null) ||
+			 keyAttributes.isEmpty())) {
+
+			return model;
+		}
+
+		ModelWrapper modelWrapper = new ModelWrapper(model);
+
+		if (criterion != null) {
+			modelWrapper.setCriterion(criterion);
+		}
+
+		if ((keyAttributes != null) && !keyAttributes.isEmpty()) {
+			modelWrapper.setKeyAttributes(keyAttributes);
+		}
+
+		cacheModelObject.put(className, modelWrapper);
+
+		return modelWrapper;
 	}
 
 	public Portlet getPortlet(String className) {
@@ -109,64 +192,6 @@ public class StagingCheckerModelFactory extends ModelFactory {
 				}
 			}
 		}
-	}
-
-	@Override
-	protected Model getModelObject(Service service) {
-		Model model = super.getModelObject(service);
-
-		if (model == null) {
-			return null;
-		}
-
-		Set<Portlet> portlets = getPortlets(model.getClassName());
-
-		if (_log.isDebugEnabled()) {
-			_log.debug(
-				model + " - isStagedModel: " + model.isStagedModel() +
-					" - isGroupedModel: " + model.isGroupedModel() +
-						" - portlets: " + portlets);
-		}
-
-		if (!model.isStagedModel() || !model.isGroupedModel() ||
-			portlets.isEmpty()) {
-
-			return model;
-		}
-
-		ModelWrapper modelWrapper = new ModelWrapper(model);
-
-		if (model.hasAttribute("classNameId")) {
-			modelWrapper.addFilter(
-				model.generateCriterionFilter("classNameId=0"));
-		}
-
-		String className = model.getClassName();
-
-		StagedModelDataHandler<?> stagedModelDataHandler =
-			StagedModelDataHandlerRegistryUtil.getStagedModelDataHandler(
-				className);
-
-		if ((stagedModelDataHandler != null) && model.isWorkflowEnabled()) {
-			modelWrapper.addFilter(
-				model.getProperty("status").in(
-					stagedModelDataHandler.getExportableStatuses()));
-		}
-
-		if (model.getClassName().startsWith(
-				"com.liferay.portlet.documentlibrary.model.") &&
-			model.hasAttribute("repositoryId")) {
-
-			modelWrapper.addFilter(
-				model.generateSingleCriterion("groupId=repositoryId"));
-		}
-		else if (model.getClassName().startsWith(
-					"com.liferay.portlet.dynamicdatamapping.model.")) {
-
-			modelWrapper.setFilter(null);
-		}
-
-		return modelWrapper;
 	}
 
 	protected Map<String, Set<Portlet>> handlerPortletMap =

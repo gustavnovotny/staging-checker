@@ -25,7 +25,6 @@ import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.repository.model.FileEntry;
-import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.SetUtil;
@@ -40,7 +39,6 @@ import com.liferay.portal.service.ClassNameLocalServiceUtil;
 import com.liferay.portal.service.GroupLocalServiceUtil;
 import com.liferay.portal.util.PortalUtil;
 import com.liferay.util.bridges.mvc.MVCPortlet;
-import com.liferay.util.portlet.PortletProps;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -57,6 +55,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -72,19 +71,15 @@ import javax.portlet.ResourceResponse;
 import javax.portlet.ResourceURL;
 
 import jorgediazest.stagingchecker.ExecutionMode;
-import jorgediazest.stagingchecker.data.DataModelUUIDComparator;
 import jorgediazest.stagingchecker.model.StagingCheckerModelFactory;
-import jorgediazest.stagingchecker.model.StagingCheckerModelQueryFactory;
 import jorgediazest.stagingchecker.output.StagingCheckerOutput;
+import jorgediazest.stagingchecker.util.ConfigurationUtil;
 
 import jorgediazest.util.data.Comparison;
-import jorgediazest.util.data.DataComparator;
+import jorgediazest.util.data.Data;
 import jorgediazest.util.model.Model;
 import jorgediazest.util.model.ModelFactory;
 import jorgediazest.util.model.ModelUtil;
-import jorgediazest.util.modelquery.ModelQuery;
-import jorgediazest.util.modelquery.ModelQueryFactory;
-import jorgediazest.util.modelquery.ModelQueryFactory.DataComparatorFactory;
 import jorgediazest.util.output.OutputUtils;
 
 /**
@@ -137,62 +132,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 		StagingCheckerModelFactory mf = new StagingCheckerModelFactory();
 
-		ModelQueryFactory queryFactory = new StagingCheckerModelQueryFactory(
-			mf);
-
-		DataComparatorFactory dataComparatorFactory =
-			new DataComparatorFactory() {
-
-			protected DataComparator defaultComparator =
-				new DataModelUUIDComparator(new String[] {
-
-				"createDate", "status", "version", "name", "title",
-				"description", "size", "AssetTag.name", "AssetCategory.uuid",
-				"com.liferay.portal.model.ResourcePermission" });
-
-			protected DataComparator noCreateDateComparator =
-				new DataModelUUIDComparator(new String[] {
-
-				"status", "version", "name", "title", "description", "size",
-				"AssetTag.name", "AssetCategory.uuid",
-				"com.liferay.portal.model.ResourcePermission" });
-
-			protected DataComparator noNameComparator =
-				new DataModelUUIDComparator(new String[] {
-
-				"createDate", "status", "version", "title", "description",
-				"size", "AssetTag.name", "AssetCategory.uuid",
-				"com.liferay.portal.model.ResourcePermission" });
-
-			@Override
-			public DataComparator getDataComparator(ModelQuery query) {
-				Model model = query.getModel();
-
-				if ("com.liferay.portlet.asset.model.AssetCategory".equals(
-						model.getClassName()) ||
-					"com.liferay.portlet.asset.model.AssetVocabulary".equals(
-						model.getClassName()) ||
-					"com.liferay.portlet.journal.model.JournalArticle".equals(
-						model.getClassName())) {
-
-					return noCreateDateComparator;
-				}
-
-				final String strDLFileEntry =
-					"com.liferay.portlet.documentlibrary.model.DLFileEntry";
-
-				if (strDLFileEntry.equals(model.getClassName())) {
-					return noNameComparator;
-				}
-
-				return defaultComparator;
-			}
-
-		};
-
-		queryFactory.setDataComparatorFactory(dataComparatorFactory);
-
-		List<ModelQuery> modelQueryList = new ArrayList<ModelQuery>();
+		List<Model> modelList = new ArrayList<Model>();
 
 		for (String className : classNames) {
 			Model model = mf.getModelObject(className);
@@ -206,13 +146,14 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			if (model.isStagedModel() && model.isGroupedModel() &&
 				!portlets.isEmpty()) {
 
-				ModelQuery modelQuery = queryFactory.getModelQueryObject(model);
-
-				modelQueryList.add(modelQuery);
+				modelList.add(model);
 			}
 		}
 
 		long companyId = company.getCompanyId();
+
+		Map<String, Map<Long, List<Data>>> queryCache =
+			new ConcurrentHashMap<String, Map<Long, List<Data>>>();
 
 		ExecutorService executor = Executors.newFixedThreadPool(
 			threadsExecutor);
@@ -224,10 +165,14 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			List<Future<Comparison>> futureResultList =
 				new ArrayList<Future<Comparison>>();
 
-			for (ModelQuery modelQuery : modelQueryList) {
+			for (Model model : modelList) {
+				if (!isStagingActive(mf, model, groupId)) {
+					continue;
+				}
+
 				CallableCheckGroupAndModel c =
 					new CallableCheckGroupAndModel(
-						companyId, groupId, modelQuery, executionMode);
+						queryCache, companyId, groupId, model, executionMode);
 
 				futureResultList.add(executor.submit(c));
 			}
@@ -291,6 +236,27 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 	public static Log getLogger() {
 		return _log;
+	}
+
+	public static boolean isStagingActive(
+			StagingCheckerModelFactory mf, Model model, long groupId)
+		throws SystemException {
+
+		Group group = GroupLocalServiceUtil.fetchGroup(groupId);
+
+		Portlet portlet = mf.getPortlet(model.getClassName());
+
+		if (!group.isStagedPortlet(portlet.getPortletId())) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(
+					model.getName() + " is not staged for group " +
+						groupId);
+			}
+
+			return false;
+		}
+
+		return true;
 	}
 
 	public void doView(
@@ -477,7 +443,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		List<String> classNames = new ArrayList<String>();
 
 		for (String className : allClassName) {
-			if (ignoreClassName(className)) {
+			if (ConfigurationUtil.ignoreClassName(className)) {
 				continue;
 			}
 
@@ -583,24 +549,8 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		return modelList;
 	}
 
-	public List<ModelQuery> getModelQueryList(
-		ModelQueryFactory mqFactory, List<String> classNames) {
-
-		List<ModelQuery> mqList = new ArrayList<ModelQuery>();
-
-		for (String className : classNames) {
-			ModelQuery mq = mqFactory.getModelQueryObject(className);
-
-			if (mq != null) {
-				mqList.add(mq);
-			}
-		}
-
-		return mqList;
-	}
-
 	public int getNumberOfThreads(ActionRequest actionRequest) {
-		int def = GetterUtil.getInteger(PortletProps.get("number.threads"),1);
+		int def = ConfigurationUtil.getDefaultNumberThreads();
 
 		int num = ParamUtil.getInteger(actionRequest, "numberOfThreads", def);
 
@@ -608,7 +558,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 	}
 
 	public int getNumberOfThreads(RenderRequest renderRequest) {
-		int def = GetterUtil.getInteger(PortletProps.get("number.threads"), 1);
+		int def = ConfigurationUtil.getDefaultNumberThreads();
 
 		int num = ParamUtil.getInteger(renderRequest, "numberOfThreads", def);
 
@@ -669,20 +619,6 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		}
 	}
 
-	public boolean ignoreClassName(String className) {
-		if (Validator.isNull(className)) {
-			return true;
-		}
-
-		for (String ignoreClassName : ignoreClassNames) {
-			if (ignoreClassName.equals(className)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	public void serveResource(
 			ResourceRequest request, ResourceResponse response)
 		throws IOException, PortletException {
@@ -699,11 +635,5 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 	private static Log _log = LogFactoryUtil.getLog(
 		StagingCheckerPortlet.class);
-
-	private static String[] ignoreClassNames = new String[] {
-		"com.liferay.portal.repository.liferayrepository.model.LiferayFileEntry",
-		"com.liferay.portal.kernel.repository.model.FileEntry",
-		"com.liferay.portal.kernel.repository.model.Folder",
-		"com.liferay.portal.model.UserPersonalSite"};
 
 }

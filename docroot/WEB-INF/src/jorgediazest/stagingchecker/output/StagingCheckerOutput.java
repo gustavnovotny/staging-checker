@@ -161,12 +161,13 @@ public class StagingCheckerOutput {
 						}
 
 						for (String type : comp.getOutputTypes()) {
-							String attribute = "uuid";
+							List<String> attributeList =
+								comp.getModel().getKeyAttributes();
 
 							String line = OutputUtils.generateCSVRow(
 									portletConfig, comp, companyOutput,
 									groupIdOutput, groupNameOutput, type,
-									attribute, locale);
+									attributeList, locale);
 
 							if (line != null) {
 								numberOfRows++;
@@ -285,13 +286,14 @@ public class StagingCheckerOutput {
 				}
 
 				for (String type : comp.getOutputTypes()) {
-					String attribute = "uuid";
-
 					int maxSize = 10;
+
+					List<String> attributeList =
+						comp.getModel().getKeyAttributes();
 
 					ResultRow row = OutputUtils.generateSearchContainerRow(
 						portletConfig, comp, groupIdOutput, groupNameOutput,
-						type, attribute, locale, numberOfRows, maxSize);
+						type, attributeList, locale, numberOfRows, maxSize);
 
 					if (row != null) {
 						numberOfRows++;
