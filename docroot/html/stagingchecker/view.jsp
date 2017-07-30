@@ -188,13 +188,13 @@ if (filterGroupIdSelected.isEmpty() || filterGroupIdSelected.contains("-1000")) 
 		exportCsvResourceURL = "window.open('" + exportCsvResourceURL + "');";
 %>
 
-		<aui:button onClick="<%= exportCsvResourceURL %>" type="button" value="export-to-csv" />
+		<aui:button onClick="<%= exportCsvResourceURL %>" value="export-to-csv" />
 
 <%
 	}
 %>
 
-		<aui:button onClick="<%= viewURL %>" type="button" value="clean" />
+		<aui:button onClick="<%= viewURL %>" value="clean" />
 
 	</aui:button-row>
 </aui:form>
