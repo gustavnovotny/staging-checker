@@ -69,3 +69,12 @@ modelInfo: [{
     model: "com.liferay.portlet.messageboards.model.MBMessage",
     filter: "classNameId=0"
 }]
+
+#Configuration to retrieve remote configuration
+remoteConfigurationBackup: {62: {}, 70: {}}
+remoteConfigurationUrl: "https://gist.githubusercontent.com/jorgediaz-lr/92d813db194ffc6590920def353c3768/raw/staging-checker_configuration.yml"
+remoteConfigurationTimeoutMilis: 86400000
+
+#Configuration to show offline update message
+offlineUpdateMessage: 'Your Staging Checker version is more than six month old!! Download a new version: <a href="https://web.liferay.com/es/marketplace/-/mp/application/70121999">https://web.liferay.com/es/marketplace/-/mp/application/70121999</a>'
+offlineUpdateTimeoutMilis: 15552000000

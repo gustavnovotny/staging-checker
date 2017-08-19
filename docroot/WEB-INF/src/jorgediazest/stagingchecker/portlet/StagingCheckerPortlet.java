@@ -21,9 +21,11 @@ import com.liferay.portal.kernel.dao.orm.Projection;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.dao.shard.ShardUtil;
+import com.liferay.portal.kernel.deploy.DeployManagerUtil;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.plugin.PluginPackage;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ParamUtil;
@@ -47,6 +49,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -63,6 +66,7 @@ import java.util.concurrent.Future;
 import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
 import javax.portlet.PortletConfig;
+import javax.portlet.PortletContext;
 import javax.portlet.PortletException;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
@@ -74,6 +78,7 @@ import jorgediazest.stagingchecker.ExecutionMode;
 import jorgediazest.stagingchecker.model.StagingCheckerModelFactory;
 import jorgediazest.stagingchecker.output.StagingCheckerOutput;
 import jorgediazest.stagingchecker.util.ConfigurationUtil;
+import jorgediazest.stagingchecker.util.RemoteConfigurationUtil;
 
 import jorgediazest.util.data.Comparison;
 import jorgediazest.util.data.Data;
@@ -238,6 +243,14 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		return _log;
 	}
 
+	public static PluginPackage getPluginPackage(PortletConfig portletConfig) {
+		PortletContext portletContext = portletConfig.getPortletContext();
+
+		String portletContextName = portletContext.getPortletContextName();
+
+		return DeployManagerUtil.getInstalledPluginPackage(portletContextName);
+	}
+
 	public static boolean isStagingActive(
 			StagingCheckerModelFactory mf, Model model, long groupId)
 		throws SystemException {
@@ -259,6 +272,35 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		return true;
 	}
 
+	public FileEntry addExportCSVFileEntry(
+		String portletId, long userId, String outputContent) {
+
+		if (Validator.isNull(outputContent)) {
+			return null;
+		}
+
+		try {
+			InputStream inputStream = new ByteArrayInputStream(
+				outputContent.getBytes(StringPool.UTF8));
+
+			Repository repository = OutputUtils.getPortletRepository(portletId);
+
+			OutputUtils.cleanupPortletFileEntries(repository, 8 * 60);
+
+			String fileName =
+				portletId + "_output_" + userId + "_" +
+				System.currentTimeMillis() + ".csv";
+
+			return OutputUtils.addPortletFileEntry(
+				repository, inputStream, userId, fileName, "text/plain");
+		}
+		catch (Exception e) {
+			_log.error(e, e);
+
+			return null;
+		}
+	}
+
 	public void doView(
 			RenderRequest renderRequest, RenderResponse renderResponse)
 		throws IOException, PortletException {
@@ -267,47 +309,27 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			(PortletConfig)renderRequest.getAttribute(
 				JavaConstants.JAVAX_PORTLET_CONFIG);
 
+		String updateMessage = getUpdateMessage(portletConfig);
+
+		renderRequest.setAttribute("updateMessage", updateMessage);
+
 		List<String> outputList = StagingCheckerOutput.generateCSVOutput(
 			portletConfig, renderRequest);
 
-		String outputScript = OutputUtils.listStringToString(outputList);
+		String portletId = portletConfig.getPortletName();
+		long userId = PortalUtil.getUserId(renderRequest);
+		String outputContent = OutputUtils.listStringToString(outputList);
 
-		FileEntry exportCsvFileEntry = null;
+		FileEntry exportCsvFileEntry = addExportCSVFileEntry(
+			portletId, userId, outputContent);
 
-		try {
-			InputStream inputStream = null;
+		if (exportCsvFileEntry != null) {
+			ResourceURL exportCsvResourceURL =
+				renderResponse.createResourceURL();
+			exportCsvResourceURL.setResourceID(exportCsvFileEntry.getTitle());
 
-			if (Validator.isNotNull(outputScript)) {
-				inputStream = new ByteArrayInputStream(
-					outputScript.getBytes(StringPool.UTF8));
-			}
-
-			String portletId = portletConfig.getPortletName();
-
-			Repository repository = OutputUtils.getPortletRepository(portletId);
-
-			OutputUtils.cleanupPortletFileEntries(repository, 8 * 60);
-
-			long userId = PortalUtil.getUserId(renderRequest);
-
-			String fileName =
-				"staging-checker_output_" + userId + "_" +
-				System.currentTimeMillis() + ".csv";
-
-			exportCsvFileEntry = OutputUtils.addPortletFileEntry(
-				repository, inputStream, userId, fileName, "text/plain");
-
-			if (exportCsvFileEntry != null) {
-				ResourceURL exportCsvResourceURL =
-					renderResponse.createResourceURL();
-				exportCsvResourceURL.setResourceID(
-					exportCsvFileEntry.getTitle());
-				renderRequest.setAttribute(
-					"exportCsvResourceURL", exportCsvResourceURL.toString());
-			}
-		}
-		catch (Exception e) {
-			_log.error(e, e);
+			renderRequest.setAttribute(
+				"exportCsvResourceURL", exportCsvResourceURL.toString());
 		}
 
 		try {
@@ -617,6 +639,60 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 			return new ArrayList<Long>();
 		}
+	}
+
+	public String getUpdateMessage(PortletConfig portletConfig) {
+
+		PluginPackage pluginPackage = getPluginPackage(portletConfig);
+
+		if (pluginPackage == null) {
+			return getUpdateMessageOffline(portletConfig);
+		}
+
+		@SuppressWarnings("unchecked")
+		Collection<String> lastAvalibleVersion =
+			(Collection<String>)RemoteConfigurationUtil.getConfigurationEntry(
+				"lastAvalibleVersion");
+
+		if ((lastAvalibleVersion == null) || lastAvalibleVersion.isEmpty()) {
+			return getUpdateMessageOffline(portletConfig);
+		}
+
+		String portletVersion = pluginPackage.getVersion();
+
+		if (lastAvalibleVersion.contains(portletVersion)) {
+			return null;
+		}
+
+		return (String)RemoteConfigurationUtil.getConfigurationEntry(
+				"updateMessage");
+	}
+
+	public String getUpdateMessageOffline(PortletConfig portletConfig) {
+		LiferayPortletContext context =
+			(LiferayPortletContext)portletConfig.getPortletContext();
+
+		long installationTimestamp = context.getPortlet().getTimestamp();
+
+		if (installationTimestamp == 0L) {
+			return null;
+		}
+
+		long offlineUpdateTimeoutMilis =
+			(Long)ConfigurationUtil.getConfigurationEntry(
+				"offlineUpdateTimeoutMilis");
+
+		long offlineUpdateTimestamp =
+			(installationTimestamp + offlineUpdateTimeoutMilis);
+
+		long currentTimeMillis = System.currentTimeMillis();
+
+		if (offlineUpdateTimestamp > currentTimeMillis) {
+			return null;
+		}
+
+		return (String)ConfigurationUtil.getConfigurationEntry(
+				"offlineUpdateMessage");
 	}
 
 	public void serveResource(
