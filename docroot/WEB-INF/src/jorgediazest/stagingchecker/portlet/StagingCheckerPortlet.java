@@ -26,25 +26,22 @@ import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.plugin.PluginPackage;
+import com.liferay.portal.kernel.portlet.LiferayPortletContext;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.SetUtil;
-import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.Company;
 import com.liferay.portal.model.Group;
 import com.liferay.portal.model.Portlet;
-import com.liferay.portal.model.Repository;
 import com.liferay.portal.security.auth.CompanyThreadLocal;
 import com.liferay.portal.service.ClassNameLocalServiceUtil;
 import com.liferay.portal.service.GroupLocalServiceUtil;
 import com.liferay.portal.util.PortalUtil;
 import com.liferay.util.bridges.mvc.MVCPortlet;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -272,35 +269,6 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		return true;
 	}
 
-	public FileEntry addExportCSVFileEntry(
-		String portletId, long userId, String outputContent) {
-
-		if (Validator.isNull(outputContent)) {
-			return null;
-		}
-
-		try {
-			InputStream inputStream = new ByteArrayInputStream(
-				outputContent.getBytes(StringPool.UTF8));
-
-			Repository repository = OutputUtils.getPortletRepository(portletId);
-
-			OutputUtils.cleanupPortletFileEntries(repository, 8 * 60);
-
-			String fileName =
-				portletId + "_output_" + userId + "_" +
-				System.currentTimeMillis() + ".csv";
-
-			return OutputUtils.addPortletFileEntry(
-				repository, inputStream, userId, fileName, "text/plain");
-		}
-		catch (Exception e) {
-			_log.error(e, e);
-
-			return null;
-		}
-	}
-
 	public void doView(
 			RenderRequest renderRequest, RenderResponse renderResponse)
 		throws IOException, PortletException {
@@ -320,7 +288,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		long userId = PortalUtil.getUserId(renderRequest);
 		String outputContent = OutputUtils.listStringToString(outputList);
 
-		FileEntry exportCsvFileEntry = addExportCSVFileEntry(
+		FileEntry exportCsvFileEntry = OutputUtils.addPortletOutputFileEntry(
 			portletId, userId, outputContent);
 
 		if (exportCsvFileEntry != null) {
