@@ -20,8 +20,8 @@ import com.liferay.portal.kernel.bean.ClassLoaderBeanHandler;
 import com.liferay.portal.kernel.dao.orm.Criterion;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.model.Portlet;
-import com.liferay.portal.service.PortletLocalServiceUtil;
+import com.liferay.portal.kernel.model.Portlet;
+import com.liferay.portal.kernel.service.PortletLocalServiceUtil;
 
 import java.lang.reflect.Proxy;
 
