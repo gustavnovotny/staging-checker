@@ -4,13 +4,13 @@ modelInfo: [{
     queryHelperClass: !!jorgediazest.stagingchecker.model.StagingCheckerQueryHelper {},
     filter: "",
     attributesToQuery: [pk,uuid,companyId,groupId,classPK,classNameId,createDate,status,version,name,title,description,size],
-    exactAttributesToCheck: [createDate,status,version,name,title,description,size,AssetTag.name,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission],
+    exactAttributesToCheck: [createDate,status,version,name,title,description,size,AssetTag.uuid,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission],
     relatedDataToQuery: [
         {model: com.liferay.portal.model.ResourcePermission, mappingsSource: [pk], mappingsRelated: [primKey], attributesToQuery: [roleId,ownerId,actionIds], raw: true},
         {model: com.liferay.portal.model.ResourceBlockPermission, mappingsSource: [resourceBlockId], mappingsRelated: [resourceBlockId], attributesToQuery: [roleId,actionIds], raw: true},
         {model: com.liferay.portlet.asset.model.AssetEntry,  mappingsSource: [pk], mappingsRelated: [classPK], attributesToQuery: [AssetEntry.entryId,AssetEntries_AssetCategories.categoryId,AssetEntries_AssetTags.tagId,AssetEntry.priority,AssetEntry.visible]},
         {model: com.liferay.portlet.asset.model.AssetCategory, mappingsSource: [AssetEntries_AssetCategories.categoryId], mappingsRelated: [AssetCategory.categoryId], attributesToQuery: [AssetCategory.uuid]},
-        {model: com.liferay.portlet.asset.model.AssetTag, mappingsSource: [AssetEntries_AssetTags.tagId],  mappingsRelated: [AssetTag.tagId], attributesToQuery: [AssetTag.name]}
+        {model: com.liferay.portlet.asset.model.AssetTag, mappingsSource: [AssetEntries_AssetTags.tagId],  mappingsRelated: [AssetTag.tagId], attributesToQuery: [AssetTag.uuid]}
     ],
     keyAttributes: [uuid]
 },
@@ -24,26 +24,26 @@ modelInfo: [{
         {model: com.liferay.portal.model.ResourcePermission, mappingsSource: [resourcePrimKey], mappingsRelated: [primKey], attributesToQuery: [roleId,ownerId,actionIds], raw: true},
         {model: com.liferay.portlet.asset.model.AssetEntry,  mappingsSource: [resourcePrimKey], mappingsRelated: [classPK], attributesToQuery: [AssetEntry.entryId,AssetEntries_AssetCategories.categoryId,AssetEntries_AssetTags.tagId,AssetEntry.priority,AssetEntry.visible]},
         {model: com.liferay.portlet.asset.model.AssetCategory, mappingsSource: [AssetEntries_AssetCategories.categoryId], mappingsRelated: [AssetCategory.categoryId], attributesToQuery: [AssetCategory.uuid]},
-        {model: com.liferay.portlet.asset.model.AssetTag, mappingsSource: [AssetEntries_AssetTags.tagId],  mappingsRelated: [AssetTag.tagId], attributesToQuery: [AssetTag.name]}
+        {model: com.liferay.portlet.asset.model.AssetTag, mappingsSource: [AssetEntries_AssetTags.tagId],  mappingsRelated: [AssetTag.tagId], attributesToQuery: [AssetTag.uuid]}
     ],
 },
 {
     model: com.liferay.portlet.asset.model.AssetCategory,
-    exactAttributesToCheck: [status,version,name,title,description,size,AssetTag.name,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission]
+    exactAttributesToCheck: [status,version,name,title,description,size,AssetTag.uuid,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission]
 },
 {
     model: com.liferay.portlet.asset.model.AssetVocabulary,
-    exactAttributesToCheck: [status,version,name,title,description,size,AssetTag.name,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission]
+    exactAttributesToCheck: [status,version,name,title,description,size,AssetTag.uuid,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission]
 },
 {
     model: com.liferay.portlet.journal.model.JournalArticle,
     filter: "classNameId=0",
-    exactAttributesToCheck: [status,version,name,title,description,size,AssetTag.name,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission],
+    exactAttributesToCheck: [status,version,name,title,description,size,AssetTag.uuid,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission],
     relatedDataToQuery: [
         {model: com.liferay.portal.model.ResourcePermission, mappingsSource: [resourcePrimKey], mappingsRelated: [primKey], attributesToQuery: [roleId,ownerId,actionIds], raw: true},
         {model: com.liferay.portlet.asset.model.AssetEntry,  mappingsSource: [resourcePrimKey], mappingsRelated: [classPK], attributesToQuery: [AssetEntry.entryId,AssetEntries_AssetCategories.categoryId,AssetEntries_AssetTags.tagId,AssetEntry.priority,AssetEntry.visible]},
         {model: com.liferay.portlet.asset.model.AssetCategory, mappingsSource: [AssetEntries_AssetCategories.categoryId], mappingsRelated: [AssetCategory.categoryId], attributesToQuery: [AssetCategory.uuid]},
-        {model: com.liferay.portlet.asset.model.AssetTag, mappingsSource: [AssetEntries_AssetTags.tagId],  mappingsRelated: [AssetTag.tagId], attributesToQuery: [AssetTag.name]},
+        {model: com.liferay.portlet.asset.model.AssetTag, mappingsSource: [AssetEntries_AssetTags.tagId],  mappingsRelated: [AssetTag.tagId], attributesToQuery: [AssetTag.uuid]},
         {model: com.liferay.portlet.journal.model.JournalArticleResource, mappingsSource: [resourcePrimKey],  mappingsRelated: [resourcePrimKey], attributesToQuery: [JournalArticleResource.uuid]}
     ],
     keyAttributes: [JournalArticleResource.uuid,version],
@@ -51,7 +51,7 @@ modelInfo: [{
 {
     model: com.liferay.portlet.documentlibrary.model.DLFileEntry,
     filter: "groupId=repositoryId and classNameId=0",
-    exactAttributesToCheck: [createDate,status,version,title,description,size,AssetTag.name,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission]
+    exactAttributesToCheck: [createDate,status,version,title,description,size,AssetTag.uuid,AssetCategory.uuid,com.liferay.portal.model.ResourcePermission]
 },
 {
     model: com.liferay.portlet.documentlibrary.model.DLFolder,
