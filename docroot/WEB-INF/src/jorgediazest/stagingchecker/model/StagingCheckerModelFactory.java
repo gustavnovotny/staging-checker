@@ -14,6 +14,9 @@
 
 package jorgediazest.stagingchecker.model;
 
+import com.liferay.exportimport.kernel.lar.PortletDataException;
+import com.liferay.exportimport.kernel.lar.PortletDataHandler;
+import com.liferay.exportimport.kernel.lar.PortletDataHandlerControl;
 import com.liferay.exportimport.kernel.lar.StagedModelDataHandler;
 import com.liferay.exportimport.kernel.lar.StagedModelDataHandlerRegistryUtil;
 import com.liferay.portal.kernel.bean.ClassLoaderBeanHandler;
@@ -51,7 +54,7 @@ public class StagingCheckerModelFactory extends ModelFactory {
 	}
 
 	public StagingCheckerModelFactory(long companyId) {
-		fillHandlerPortletIdMap();
+		fillClassNamePortletMapping();
 
 		this.companyId = companyId;
 	}
@@ -68,7 +71,7 @@ public class StagingCheckerModelFactory extends ModelFactory {
 			return model;
 		}
 
-		Set<Portlet> portlets = getPortlets(model.getClassName());
+		Set<Portlet> portlets = getPortletSet(model.getClassName());
 
 		if (_log.isDebugEnabled()) {
 			_log.debug(
@@ -133,74 +136,53 @@ public class StagingCheckerModelFactory extends ModelFactory {
 		return modelWrapper;
 	}
 
-	public Portlet getPortlet(String className) {
-		Set<Portlet> portlets = getPortlets(className);
-
-		if ((portlets == null) || portlets.isEmpty()) {
-			return null;
+	public Set<Portlet> getPortletSet(String className) {
+		if (!classNamePortletMap.containsKey(className)) {
+			return new HashSet<>();
 		}
 
-		return portlets.toArray(new Portlet[portlets.size()])[0];
+		return classNamePortletMap.get(className);
 	}
 
-	public Set<Portlet> getPortlets(String className) {
-		Object stagingDataHandler =
-			StagedModelDataHandlerRegistryUtil.getStagedModelDataHandler(
-				className);
-
-		if (stagingDataHandler == null) {
-			return Collections.emptySet();
-		}
-
-		if (stagingDataHandler instanceof Proxy) {
-			try {
-				ClassLoaderBeanHandler classLoaderBeanHandler =
-					(ClassLoaderBeanHandler)
-						Proxy.getInvocationHandler(stagingDataHandler);
-				stagingDataHandler = classLoaderBeanHandler.getBean();
-
-				if (stagingDataHandler == null) {
-					return Collections.emptySet();
-				}
-			}
-			catch (Exception e) {
-				if (_log.isDebugEnabled()) {
-					_log.debug(e, e);
-				}
-			}
-		}
-
-		String key = stagingDataHandler.getClass().getName();
-
-		if (!handlerPortletMap.containsKey(key)) {
-			return Collections.emptySet();
-		}
-
-		return handlerPortletMap.get(key);
-	}
-
-	protected void fillHandlerPortletIdMap() {
+	protected void fillClassNamePortletMapping() {
 		for (Portlet portlet : PortletLocalServiceUtil.getPortlets()) {
-			for (String handler : portlet.getStagedModelDataHandlerClasses()) {
-				if (!handlerPortletMap.containsKey(handler)) {
-					handlerPortletMap.put(handler, new HashSet<Portlet>());
-				}
+			PortletDataHandler portletDataHandler =
+				portlet.getPortletDataHandlerInstance();
 
-				Set<Portlet> portletSet = handlerPortletMap.get(handler);
+			PortletDataHandlerControl[] pdhControlArr;
 
-				if (!portletSet.contains(portlet)) {
-					portletSet.add(portlet);
+			try {
+				pdhControlArr = portletDataHandler.getExportControls();
+			}
+			catch (PortletDataException pde) {
+				_log.warn(pde, pde);
 
-					if (_log.isDebugEnabled()) {
-						_log.debug(
-							"Adding: " + handler + " portlet " + portlet);
-					}
-				}
+				continue;
+			}
+
+			for (PortletDataHandlerControl pdhControl : pdhControlArr) {
+				addClassNamePortletMapping(pdhControl.getClassName(), portlet);
 			}
 		}
 	}
 
-	protected Map<String, Set<Portlet>> handlerPortletMap =
+	private void addClassNamePortletMapping(String className, Portlet portlet) {
+		if (!classNamePortletMap.containsKey(className)) {
+			classNamePortletMap.put(className, new HashSet<Portlet>());
+		}
+
+		Set<Portlet> portletSet = classNamePortletMap.get(className);
+
+		if (!portletSet.contains(portlet)) {
+			portletSet.add(portlet);
+
+			if (_log.isDebugEnabled()) {
+				_log.debug("Adding: " + className + " portlet " + portlet);
+			}
+		}
+	}
+
+	protected Map<String, Set<Portlet>> classNamePortletMap =
 		new HashMap<String, Set<Portlet>>();
 
 	private static Log _log = LogFactoryUtil.getLog(

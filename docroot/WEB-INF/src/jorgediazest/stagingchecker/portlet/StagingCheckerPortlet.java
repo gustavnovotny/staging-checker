@@ -141,7 +141,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 				continue;
 			}
 
-			Set<Portlet> portlets = mf.getPortlets(model.getClassName());
+			Set<Portlet> portlets = mf.getPortletSet(model.getClassName());
 
 			if (model.isStagedModel() && model.isGroupedModel() &&
 				!portlets.isEmpty()) {
@@ -252,7 +252,13 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 		Group group = GroupLocalServiceUtil.fetchGroup(groupId);
 
-		Portlet portlet = mf.getPortlet(model.getClassName());
+		Set<Portlet> portlets = mf.getPortletSet(model.getClassName());
+
+		if (portlets.isEmpty()) {
+			return false;
+		}
+
+		Portlet portlet = portlets.toArray(new Portlet[1])[0];
 
 		if (!group.isStagedPortlet(portlet.getPortletId())) {
 			if (_log.isDebugEnabled()) {
@@ -522,7 +528,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			StagingCheckerModelFactory mf =
 				(StagingCheckerModelFactory)model.getModelFactory();
 
-			Set<Portlet> portlets = mf.getPortlets(model.getClassName());
+			Set<Portlet> portlets = mf.getPortletSet(model.getClassName());
 
 			if (!portlets.isEmpty()) {
 				modelList.add(model);
