@@ -16,6 +16,8 @@ package jorgediazest.stagingchecker.model;
 
 import com.liferay.portal.kernel.bean.ClassLoaderBeanHandler;
 import com.liferay.portal.kernel.dao.orm.Criterion;
+import com.liferay.portal.kernel.dao.orm.Property;
+import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.lar.StagedModelDataHandler;
 import com.liferay.portal.kernel.lar.StagedModelDataHandlerRegistryUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -26,6 +28,7 @@ import com.liferay.portal.service.PortletLocalServiceUtil;
 import java.lang.reflect.Proxy;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -44,16 +47,20 @@ import jorgediazest.util.model.ModelWrapper;
  */
 public class StagingCheckerModelFactory extends ModelFactory {
 
-	long companyId;
-
 	public StagingCheckerModelFactory() {
-		this(0L);
+		fillHandlerPortletIdMap();
+
+		this.companyId = 0L;
 	}
 
-	public StagingCheckerModelFactory(long companyId) {
+	public StagingCheckerModelFactory(
+		long companyId, Date startModifiedDate, Date endModifiedDate) {
+
 		fillHandlerPortletIdMap();
 
 		this.companyId = companyId;
+		this.startModifiedDate = startModifiedDate;
+		this.endModifiedDate = endModifiedDate;
 	}
 
 	@Override
@@ -105,6 +112,22 @@ public class StagingCheckerModelFactory extends ModelFactory {
 
 		Criterion criterion = ModelUtil.generateConjunctionCriterion(
 			companyCriterion, stagedModelCriterion, sqlCriterion);
+
+		if (startModifiedDate != null) {
+			Criterion startDateCriterion = getAttributeRangeCriterion(
+				model, "modifiedDate", startModifiedDate, true);
+
+			criterion = ModelUtil.generateConjunctionCriterion(
+				startDateCriterion, criterion);
+		}
+
+		if (endModifiedDate != null) {
+			Criterion endDateCriterion = getAttributeRangeCriterion(
+					model, "modifiedDate", endModifiedDate, false);
+
+			criterion = ModelUtil.generateConjunctionCriterion(
+				endDateCriterion, criterion);
+		}
 
 		if ((criterion == null) && ((keyAttributes == null) ||
 			 keyAttributes.isEmpty())) {
@@ -200,10 +223,30 @@ public class StagingCheckerModelFactory extends ModelFactory {
 		}
 	}
 
+	protected Criterion getAttributeRangeCriterion(
+		Model model, String attribute, Object value, boolean isStartValue) {
+
+		if (!model.hasAttribute(attribute)) {
+			return RestrictionsFactoryUtil.disjunction();
+		}
+
+		Property property = model.getProperty(attribute);
+
+		if (isStartValue) {
+			return property.ge(value);
+		}
+
+		return property.lt(value);
+	}
+
 	protected Map<String, Set<Portlet>> handlerPortletMap =
 		new HashMap<String, Set<Portlet>>();
 
 	private static Log _log = LogFactoryUtil.getLog(
 		StagingCheckerModelFactory.class);
+
+	private long companyId;
+	private Date endModifiedDate;
+	private Date startModifiedDate;
 
 }
