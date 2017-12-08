@@ -36,10 +36,12 @@ import com.liferay.portal.kernel.service.ClassNameLocalServiceUtil;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 import com.liferay.portal.kernel.util.CalendarFactory;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.SetUtil;
+import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -67,6 +69,7 @@ import javax.portlet.ActionResponse;
 import javax.portlet.PortletConfig;
 import javax.portlet.PortletContext;
 import javax.portlet.PortletException;
+import javax.portlet.PortletPreferences;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 import javax.portlet.ResourceRequest;
@@ -214,6 +217,12 @@ public class StagingCheckerPortlet extends MVCPortlet {
 	public static EnumSet<ExecutionMode>
 		getExecutionMode(ActionRequest request) {
 
+		PortletPreferences portletPreferences = request.getPreferences();
+
+		boolean dumpAllObjectsToLog = GetterUtil.getBoolean(
+			portletPreferences.getValue(
+				"dumpAllObjectsToLog", StringPool.FALSE));
+
 		EnumSet<ExecutionMode> executionMode = EnumSet.noneOf(
 			ExecutionMode.class);
 
@@ -233,7 +242,7 @@ public class StagingCheckerPortlet extends MVCPortlet {
 			executionMode.add(ExecutionMode.SHOW_LIVE);
 		}
 
-		if (ParamUtil.getBoolean(request, "dumpAllObjectsToLog")) {
+		if (dumpAllObjectsToLog) {
 			executionMode.add(ExecutionMode.DUMP_ALL_OBJECTS_TO_LOG);
 		}
 
@@ -330,9 +339,6 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		catch (SystemException se) {
 			throw new PortletException(se);
 		}
-
-		int numberOfThreads = getNumberOfThreads(renderRequest);
-		renderRequest.setAttribute("numberOfThreads", numberOfThreads);
 
 		long filterModifiedDate = ParamUtil.getLong(
 			renderRequest, "filterModifiedDate", 0L);
@@ -564,19 +570,16 @@ public class StagingCheckerPortlet extends MVCPortlet {
 	}
 
 	public int getNumberOfThreads(ActionRequest actionRequest) {
-		int def = ConfigurationUtil.getDefaultNumberThreads();
+		PortletPreferences portletPreferences = actionRequest.getPreferences();
 
-		int num = ParamUtil.getInteger(actionRequest, "numberOfThreads", def);
+		int numberOfThreads = GetterUtil.getInteger(
+			portletPreferences.getValue("numberOfThreads", StringPool.BLANK));
 
-		return (num == 0) ? def : num;
-	}
+		if (numberOfThreads != 0) {
+			return numberOfThreads;
+		}
 
-	public int getNumberOfThreads(RenderRequest renderRequest) {
-		int def = ConfigurationUtil.getDefaultNumberThreads();
-
-		int num = ParamUtil.getInteger(renderRequest, "numberOfThreads", def);
-
-		return (num == 0) ? def : num;
+		return ConfigurationUtil.getDefaultNumberThreads();
 	}
 
 	public List<String> getSiteGroupDescriptions(List<Long> siteGroupIds)

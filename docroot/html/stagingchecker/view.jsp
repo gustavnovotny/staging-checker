@@ -185,8 +185,6 @@ if (filterGroupIdSelected.isEmpty() || filterGroupIdSelected.contains("-1000")) 
 			</aui:select>
 		</aui:col>
 		<aui:col width="25">
-			<aui:input name="dumpAllObjectsToLog" type="checkbox" value="false" />
-			<aui:input helpMessage="number-of-threads-help" name="numberOfThreads" type="text" value='<%= request.getAttribute("numberOfThreads") %>' />
 			<aui:fieldset>
 				<aui:select helpMessage="filter-modified-date-help"  inlineLabel="left" name="filterModifiedDate">
 					<aui:option selected="true" value="0"><liferay-ui:message key="filter-group-id-no-filter" /></aui:option>

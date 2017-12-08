@@ -6,6 +6,10 @@
 		<display-name>Staging Checker</display-name>
 		<portlet-class>jorgediazest.stagingchecker.portlet.StagingCheckerPortlet</portlet-class>
 		<init-param>
+			<name>config-template</name>
+			<value>/html/stagingchecker/config.jsp</value>
+		</init-param>
+		<init-param>
 			<name>view-template</name>
 			<value>/html/stagingchecker/view.jsp</value>
 		</init-param>
