@@ -28,6 +28,8 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.plugin.PluginPackage;
 import com.liferay.portal.kernel.portlet.LiferayPortletContext;
 import com.liferay.portal.kernel.repository.model.FileEntry;
+import com.liferay.portal.kernel.util.CalendarFactory;
+import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.SetUtil;
@@ -46,8 +48,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -129,10 +133,12 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 	public static Map<Long, List<Comparison>> executeCheck(
 		Company company, List<Long> groupIds, List<String> classNames,
+		Date startModifiedDate, Date endModifiedDate,
 		Set<ExecutionMode> executionMode, int threadsExecutor)
 	throws Exception {
 
-		StagingCheckerModelFactory mf = new StagingCheckerModelFactory();
+		StagingCheckerModelFactory mf = new StagingCheckerModelFactory(
+			0L, startModifiedDate, endModifiedDate);
 
 		List<Model> modelList = new ArrayList<Model>();
 
@@ -324,6 +330,11 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		int numberOfThreads = getNumberOfThreads(renderRequest);
 		renderRequest.setAttribute("numberOfThreads", numberOfThreads);
 
+		long filterModifiedDate = ParamUtil.getLong(
+			renderRequest, "filterModifiedDate", 0L);
+
+		renderRequest.setAttribute("filterModifiedDate", filterModifiedDate);
+
 		super.doView(renderRequest, renderResponse);
 	}
 
@@ -350,6 +361,21 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		request.setAttribute(
 			"filterGroupIdSelected", SetUtil.fromArray(filterGroupIdArr));
 
+		List<String> classNames = getClassNames(filterClassNameArr);
+
+		Date startModifiedDate = null;
+		Date endModifiedDate = null;
+
+		long filterModifiedDate = ParamUtil.getLong(
+			request, "filterModifiedDate", 0L);
+
+		if (filterModifiedDate > 0) {
+			long now = System.currentTimeMillis();
+
+			startModifiedDate = getStartDate(now, filterModifiedDate);
+			endModifiedDate = getTomorrowDate(now);
+		}
+
 		Map<Company, Map<Long, List<Comparison>>> companyResultDataMap =
 			new LinkedHashMap<Company, Map<Long, List<Comparison>>>();
 
@@ -365,15 +391,14 @@ public class StagingCheckerPortlet extends MVCPortlet {
 
 				ShardUtil.pushCompanyService(company.getCompanyId());
 
-				List<String> classNames = getClassNames(filterClassNameArr);
-
 				List<Long> groupIds = getGroupIds(company, filterGroupIdArr);
 
 				long startTime = System.currentTimeMillis();
 
 				Map<Long, List<Comparison>> resultDataMap =
 					StagingCheckerPortlet.executeCheck(
-						company, groupIds, classNames, executionMode,
+						company, groupIds, classNames, startModifiedDate,
+						endModifiedDate, executionMode,
 						getNumberOfThreads(request));
 
 				long endTime = System.currentTimeMillis();
@@ -675,6 +700,31 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		String portletId = portletConfig.getPortletName();
 
 		OutputUtils.servePortletFileEntry(portletId, resourceId, response);
+	}
+
+	protected Date getStartDate(long timeInMillis, long hoursToSubstract) {
+		CalendarFactory calendarFactory =
+			CalendarFactoryUtil.getCalendarFactory();
+
+		long start = timeInMillis - (hoursToSubstract * 60 * 60 * 1000);
+
+		Calendar startCalendar = calendarFactory.getCalendar(start);
+
+		return startCalendar.getTime();
+	}
+
+	protected Date getTomorrowDate(long timeInMillis) {
+
+		CalendarFactory calendarFactory =
+			CalendarFactoryUtil.getCalendarFactory();
+
+		Calendar tomorrowCalendar = calendarFactory.getCalendar(timeInMillis);
+		tomorrowCalendar.add(Calendar.DATE, 1);
+		tomorrowCalendar.set(Calendar.HOUR_OF_DAY, 0);
+		tomorrowCalendar.set(Calendar.MINUTE, 0);
+		tomorrowCalendar.set(Calendar.SECOND, 0);
+
+		return tomorrowCalendar.getTime();
 	}
 
 	private static Log _log = LogFactoryUtil.getLog(
