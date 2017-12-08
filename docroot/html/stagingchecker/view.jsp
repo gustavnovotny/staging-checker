@@ -187,6 +187,25 @@ if (filterGroupIdSelected.isEmpty() || filterGroupIdSelected.contains("-1000")) 
 		<aui:col width="25">
 			<aui:input name="dumpAllObjectsToLog" type="checkbox" value="false" />
 			<aui:input helpMessage="number-of-threads-help" name="numberOfThreads" type="text" value='<%= request.getAttribute("numberOfThreads") %>' />
+			<aui:fieldset>
+				<aui:select helpMessage="filter-modified-date-help"  inlineLabel="left" name="filterModifiedDate">
+					<aui:option selected="true" value="0"><liferay-ui:message key="filter-group-id-no-filter" /></aui:option>
+					<aui:option value="1"><liferay-ui:message key="1-hour" /></aui:option>
+					<aui:option value="3"><liferay-ui:message key="3-hours" /></aui:option>
+					<aui:option value="6"><liferay-ui:message key="6-hours" /></aui:option>
+					<aui:option value="12"><liferay-ui:message key="12-hours" /></aui:option>
+					<aui:option value="24"><liferay-ui:message key="1-day" /></aui:option>
+					<aui:option value="72"><liferay-ui:message key="3-days" /></aui:option>
+					<aui:option value="168"><liferay-ui:message key="1-week" /></aui:option>
+					<aui:option value="336"><liferay-ui:message key="2-weeks" /></aui:option>
+					<aui:option value="729"><liferay-ui:message key="1-month" /></aui:option>
+					<aui:option value="2190"><liferay-ui:message key="3-months" /></aui:option>
+					<aui:option value="4380"><liferay-ui:message key="6-months" /></aui:option>
+					<aui:option value="8760"><liferay-ui:message key="1-year" /></aui:option>
+					<aui:option value="26280"><liferay-ui:message key="3-years" /></aui:option>
+					<aui:option value="43800"><liferay-ui:message key="5-years" /></aui:option>
+				</aui:select>
+			</aui:fieldset>
 		</aui:col>
 	</aui:row>
 
@@ -257,7 +276,7 @@ if (filterGroupIdSelected.isEmpty() || filterGroupIdSelected.contains("-1000")) 
 <i>Executed <b><%= request.getAttribute("title") %></b> for company <%= companyEntry.getKey().getCompanyId() %> in <%=processTime %> ms</i><br />
 
 <%
-	}
+		}
 %>
 
 <%
