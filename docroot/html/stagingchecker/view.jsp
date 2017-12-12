@@ -294,3 +294,12 @@ if (filterGroupIdSelected.isEmpty() || filterGroupIdSelected.contains("-1000")) 
 %>
 
 </div></div></div>
+
+<aui:script>
+	Liferay.provide(window,'closePopupWindow', function(dialogId) {
+			var dialog = Liferay.Util.Window.getById(dialogId);
+			dialog.destroy();
+		},
+		['liferay-util-window']
+	);
+</aui:script>
