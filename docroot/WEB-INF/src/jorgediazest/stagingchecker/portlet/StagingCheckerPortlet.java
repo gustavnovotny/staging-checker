@@ -701,7 +701,8 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		String resourceId = request.getResourceID();
 		String portletId = portletConfig.getPortletName();
 
-		OutputUtils.servePortletFileEntry(portletId, resourceId, response);
+		OutputUtils.servePortletFileEntry(
+			portletId, resourceId, request, response);
 	}
 
 	protected Date getStartDate(long timeInMillis, long hoursToSubstract) {
