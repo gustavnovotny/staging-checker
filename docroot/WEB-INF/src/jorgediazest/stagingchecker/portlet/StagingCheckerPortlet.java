@@ -27,6 +27,7 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Portlet;
+import com.liferay.portal.kernel.patcher.PatcherUtil;
 import com.liferay.portal.kernel.plugin.PluginPackage;
 import com.liferay.portal.kernel.portlet.LiferayPortletContext;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
@@ -40,9 +41,11 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -636,7 +639,49 @@ public class StagingCheckerPortlet extends MVCPortlet {
 		}
 	}
 
+	protected static boolean isLps74956Unsolved() {
+
+		for (String installedPatch : PatcherUtil.getInstalledPatches()) {
+			if (installedPatch.startsWith("de-")) {
+				String[] fixpackNumber = installedPatch.split("\\-");
+				try {
+					long fixpackNum = Long.parseLong(fixpackNumber[1]);
+
+					if (fixpackNum>=33) {
+						return false;
+					}
+
+					return true;
+				}
+				catch (Exception e) {
+				}
+			}
+		}
+
+		try {
+			String releaseVersion = ReleaseInfo.getVersion();
+	
+			long minorVersion = Long.parseLong(releaseVersion.split("\\.")[2]);
+
+			if ((minorVersion>=5) && (minorVersion != 10)) {
+				return false;
+			}
+
+			return true;
+		}
+		catch (Exception e) {
+		}
+
+		return true;
+	}
+
 	public String getUpdateMessage(PortletConfig portletConfig) {
+
+		/* Due to LPS-74956, pluginPackage.getVersion() returns a wrong value */
+		if (isLps74956Unsolved()) {
+			return (String)ConfigurationUtil.getConfigurationEntry(
+					"oldLiferayUpdateMessage");
+		}
 
 		PluginPackage pluginPackage = getPluginPackage(portletConfig);
 
